@@ -241,25 +241,37 @@ class CRISPRReportGenerator:
         print("资源文件复制完成")
 
     def _copy_library_files(self, js_dir, css_dir):
-        """复制前端库文件"""
+        """复制前端库文件（对齐参考脚本：bootstrap-4.3.1.min.css 重命名为 bootstrap.min.css）"""
         script_dir = Path(__file__).parent if '__file__' in globals() else self.data_dir
         resources_dir = script_dir / 'resources'
 
-        if resources_dir.exists():
-            for css_file in resources_dir.glob('css/*.css'):
-                if css_file.name not in ['style.css']:
-                    shutil.copy2(css_file, css_dir / css_file.name)
+        if not resources_dir.exists():
+            print("警告: 未找到resources文件夹")
+            return
 
-            for js_file in resources_dir.glob('js/*.js'):
-                if js_file.name not in ['common.js', 'scrolltop.js']:
-                    shutil.copy2(js_file, js_dir / js_file.name)
+        # CSS: bootstrap-4.3.1.min.css → bootstrap.min.css，其余保持原名
+        # 排除 style.css / base.css / gallery.css（由 _write_css 生成，resources 中为旧版）
+        for css_file in resources_dir.glob('css/*.css'):
+            if css_file.name in ('style.css', 'base.css', 'gallery.css'):
+                continue
+            dst_name = 'bootstrap.min.css' if css_file.name == 'bootstrap-4.3.1.min.css' else css_file.name
+            shutil.copy2(css_file, css_dir / dst_name)
 
-                    fancybox_src = resources_dir / 'js' / 'fancybox'
-                    if fancybox_src.exists():
-                        fancybox_dst = js_dir / 'fancybox'
-                        fancybox_dst.mkdir(exist_ok=True)
-                        for fb_file in fancybox_src.glob('*'):
-                            shutil.copy2(fb_file, fancybox_dst / fb_file.name)
+        # JS: bootstrap-4.3.1.min.js → bootstrap.min.js，其余保持原名
+        for js_file in resources_dir.glob('js/*.js'):
+            if js_file.name in ('common.js', 'scrolltop.js'):
+                continue
+            dst_name = 'bootstrap.min.js' if js_file.name == 'bootstrap-4.3.1.min.js' else js_file.name
+            shutil.copy2(js_file, js_dir / dst_name)
+
+        # fancybox 资源目录
+        fancybox_src = resources_dir / 'js' / 'fancybox'
+        if fancybox_src.exists():
+            fancybox_dst = js_dir / 'fancybox'
+            fancybox_dst.mkdir(exist_ok=True)
+            for fb_file in fancybox_src.glob('*'):
+                if fb_file.is_file():
+                    shutil.copy2(fb_file, fancybox_dst / fb_file.name)
     
     def _copy_static_images(self):
         """复制固定的报告图片 (flute.png, fastq.png)"""
@@ -322,12 +334,12 @@ class CRISPRReportGenerator:
         remaining_cols = len(columns) - 1
         other_col_width = f'calc((100% - {first_col_width}) / {remaining_cols})' if remaining_cols > 0 else 'auto'
         
-        # 生成表头（始终带排序功能，视觉统一用 data-table 样式）
+        # 生成表头（始终带排序功能，视觉统一用 gy 样式对齐参考脚本）
         headers = ''.join([
             f'<th onclick="sortTableByColumn(\'{table_id}\', {i})" style="cursor:pointer">{col}<span class="sort-indicator"></span></th>'
             for i, col in enumerate(columns)
         ])
-        table_classes = 'data-table'
+        table_classes = 'gy table table-striped table-bordered'
         
         # 生成数据行
         rows = ''
@@ -444,15 +456,23 @@ class CRISPRReportGenerator:
 </div>
 <p class="name_table">{caption_html}</p>'''
         
-        # 分页控件
+        # 分页控件（精简风格：Prev/Next + 页码方块）
+        init_start = 1
+        init_end = min(max_rows, total_rows)
+        page_nums_html = ''
+        if total_pages > 1:
+            visible_end = min(total_pages, 5)
+            for p in range(1, visible_end + 1):
+                cls = 'page-num active' if p == 1 else 'page-num'
+                page_nums_html += f'<span class="{cls}" onclick="goToPage(\'{table_id}\', {p})">{p}</span>'
         pagination = f'''<div class="table-pagination" id="{table_id}_pagination">
-            <span class="pagination-info">共 {total_rows} 行，显示 1-{min(max_rows, total_rows)} 行</span>
+            <span class="pagination-info">共 {total_rows} 行，显示 {init_start}-{init_end} 行</span>
             <div class="pagination-controls">
-                <button class="btn btn-sm btn-primary" onclick="goToPage('{table_id}', 1)" disabled>首页</button>
-                <button class="btn btn-sm btn-primary" onclick="prevPage('{table_id}')" disabled>上一页</button>
-                <span class="page-info"><span id="{table_id}_current">1</span> / {total_pages}</span>
-                <button class="btn btn-sm btn-primary" onclick="nextPage('{table_id}')">下一页</button>
-                <button class="btn btn-sm btn-primary" onclick="goToPage('{table_id}', 999999)">末页</button>
+                <span class="page-nav prev-nav disabled" onclick="prevPage('{table_id}')">Prev</span>
+                <span class="page-arrow page-arrow-prev disabled" onclick="prevPage('{table_id}')">&lt;</span>
+                <span class="page-nums" id="{table_id}_pageNums">{page_nums_html}</span>
+                <span class="page-arrow page-arrow-next" onclick="nextPage('{table_id}')">&gt;</span>
+                <span class="page-nav next-nav" onclick="nextPage('{table_id}')">Next</span>
             </div>
         </div>'''
         
@@ -498,6 +518,8 @@ class CRISPRReportGenerator:
     window.tableSearchTerm['{table_id}'] = '';
     window.activeFilters = window.activeFilters || {{}};
     window.activeFilters['{table_id}'] = [];
+    window._tableMeta = window._tableMeta || {{}};
+    window._tableMeta['{table_id}'] = {{ totalRows: {total_rows}, maxRows: {max_rows} }};
 </script>'''
 
     def _classify_image(self, filename):
@@ -744,7 +766,7 @@ class CRISPRReportGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{self.report_title}</title>
+    <title>{self.project_name}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/bootstrap.min.css">
@@ -774,15 +796,17 @@ class CRISPRReportGenerator:
     <div class="report-container">
 
 '''
-        # 封面页
+        # 封面页 — 横版左文右图布局（对齐参考脚本结构）
+        protocol_text = f"协议编号：{self.protocol_number}" if self.protocol_number else ""
         html += f'''
-    <div class="report-cover">
-        <div class="report-cover-inner">
+        <div class="report-cover">
+            <div class="report-cover-inner">
             <div class="cover-header">
                 <div class="cover-logo">
-                    <img src="{logo_src}" alt="Logo" style="display: {logo_display};">
+                    <img src="{logo_src}" alt="源井生物" style="display: {logo_display};">
                 </div>
             </div>
+
             <div class="cover-body">
                 <div class="cover-body-upper">
                     <div class="cover-center-block">
@@ -792,8 +816,12 @@ class CRISPRReportGenerator:
                 </div>
                 <img src="{bg_src}" alt="" class="cover-artwork" style="display: {bg_display};">
             </div>
+
+            <div class="cover-footer">
+                <span class="cover-protocol">{protocol_text}</span>
+            </div>
+            </div>
         </div>
-    </div>
 '''
         
         # 报告头部
@@ -808,10 +836,6 @@ class CRISPRReportGenerator:
                             <span class="report-meta-value">{self.project_id}</span>
                         </div>
                                                 <div class="report-meta-row">
-                            <span class="report-meta-label">协议编号</span>
-                            <span class="report-meta-value">{self.protocol_number}</span>
-                        </div>
-                        <div class="report-meta-row">
                             <span class="report-meta-label">数据类型</span>
                             <span class="report-meta-value">sgRNA文库测序分析</span>
                         </div>
@@ -911,7 +935,8 @@ class CRISPRReportGenerator:
         </p>
 
         <h3>实验流程</h3>
-        <h4>1.1 文库制备</h4>
+
+        <h4 style="color: #da1e33;">1.1 文库制备</h4>
         <p class="para-no-indent">
             DNA样品经DNA片段化(Shear)、末端补平(End repair)、片段3端加A尾(Add 3\'A Tail)、连接接头(Ligate Adapters)、片段筛选(Clean)、PCR扩增(Enrich with PCR)、片段筛选(Clean)、PCR产物质检(QC)等步骤构建形成Illumina平台高通量测序文库。
         </p>
@@ -919,35 +944,25 @@ class CRISPRReportGenerator:
             <img src="images/flute.png" alt="文库制备流程图" style="max-height: 500px;">
         </div>
 
-        <h4>1.2 测序</h4>
+        <h4 style="color: #da1e33;">1.2 测序</h4>
         <p class="para-no-indent">
             Illumina平台上机测序，采用双端150bp测序模式。fastq是测序数据下机格式，其中包含测序序列(reads)的序列信息，及其对应的测序质量信息。fastq格式文件中每个read由四行描述，如下：
         </p>
 
-        <h4>1.3 数据分析</h4>
-        <div class="analysis-steps">
-            <div class="analysis-step">
-                <div class="step-number">1</div>
-                <div class="step-content">
-                    <h4>测序数据质控</h4>
-                    <p>对原始测序数据进行质量控制，去除raw data中低质量的、较短的reads，得到clean data。</p>
-                </div>
-            </div>
-            <div class="analysis-step">
-                <div class="step-number">2</div>
-                <div class="step-content">
-                    <h4>Reads比对</h4>
-                    <p>从reads中提取gRNA序列，比对到sgRNA文库的参考序列。</p>
-                </div>
-            </div>
-            <div class="analysis-step">
-                <div class="step-number">3</div>
-                <div class="step-content">
-                    <h4>统计分析</h4>
-                    <p>对比对结果进行统计分析，包括完全匹配的reads数量，匹配到的sgRNA、基因数量和覆盖率、均一性等指标。</p>
-                </div>
-            </div>
-        </div>
+        <h4 style="color: #da1e33;">1.3 数据分析</h4>
+        <p class="para-no-indent">
+            本报告使用MAGeCKFlute进行CRISPR文库筛选数据的分析。MAGeCKFlute是一个综合性的CRISPR筛选数据分析工具，整合了MAGeCK和MAGeCKFlute的功能，能够进行sgRNA级别的质量控制、基因水平的阳性/阴性筛选、以及下游富集分析。
+        </p>
+
+        <h4>1.3.1 测序数据质控</h4>
+        <p class="para-no-indent">对原始测序数据进行质量控制（QC），去除低质量 Reads 和接头污染序列，获得 Clean Reads 用于后续分析。</p>
+
+        <h4>1.3.2 Reads 比对</h4>
+        <p class="para-no-indent">将 Clean Reads 与 sgRNA 文库参考序列进行比对，提取并统计各 sgRNA 的 Reads 数目。</p>
+
+        <h4>1.3.3 统计分析</h4>
+        <p class="para-no-indent">对比对结果进行统计分析，包括比对上的 Reads 数量、覆盖的 sgRNA 和基因数目、覆盖率及Reads 均一性等质控指标。</p>
+
 '''
 
     def _generate_qc_section(self):
@@ -962,7 +977,7 @@ class CRISPRReportGenerator:
             <li>随着测序的进行，错误率会升高，测序质量降低，这是由于测试过程中荧光基团的不完全切割和de-phasing引起荧光信号衰减。</li>
         </ul>
 
-        <h4>质量分数与错误率换算关系</h4>
+        <h4 style="border-left: 4px solid #da1e33; padding-left: 10px; color: #222;">质量分数与错误率换算关系</h4>
         <p class="para-no-indent">
             如果碱基的质量分数用Q表示，识别错误率用P表示，则碱基的质量分数和错误率能用以下公式表示：
         </p>
@@ -971,33 +986,33 @@ class CRISPRReportGenerator:
             <p style="margin: 5px 0;"><strong>P = 10^(-Q/10)</strong></p>
         </div>
 
-        <table class="data-table data-table-static" style="width: 100%; margin: 15px 0;">
-                <thead>
+        <table style="width: 100%; margin: 15px 0; border-collapse: collapse;">
+                <thead style="background: #da1e33; color: white;">
                     <tr>
-                        <th>Phred Quality Score</th>
-                    <th>Probability of Error</th>
-                    <th>Base Call Accuracy</th>
+                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Phred Quality Score</th>
+                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Probability of Error</th>
+                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Base Call Accuracy</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr><td>10</td><td>1/10</td><td>90%</td></tr>
-                    <tr><td>20</td><td>1/100</td><td>99%</td></tr>
-                    <tr><td>30</td><td>1/1000</td><td>99.9%</td></tr>
-                    <tr><td>40</td><td>1/10000</td><td>99.99%</td></tr>
-                    <tr><td>50</td><td>1/100000</td><td>99.999%</td></tr>
+                <tbody style="background: #fff5f5;">
+                    <tr><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">10</td><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">1/10</td><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">90%</td></tr>
+                    <tr><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">20</td><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">1/100</td><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">99%</td></tr>
+                    <tr><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">30</td><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">1/1000</td><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">99.9%</td></tr>
+                    <tr><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">40</td><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">1/10000</td><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">99.99%</td></tr>
+                    <tr><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">50</td><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">1/100000</td><td style="padding: 8px; text-align: center; border: 1px solid #ddd;">99.999%</td></tr>
                 </tbody>
             </table>
 
-        <h3>原始数据过滤说明</h3>
+        <h3 style="color: #222; border-left: 4px solid #da1e33; padding-left: 10px; font-size: 18px; margin: 20px 0 15px 0; font-weight: bold;">原始数据过滤说明</h3>
         <p class="para-no-indent">
             测序得到的原始测序序列，里面含有带接头的、低质量的reads。为了保证信息分析质量，需要对raw reads进行精细过滤，得到clean reads，后续分析都基于clean reads进行。
         </p>
 
-        <h4>数据处理步骤</h4>
-        <ol class="overview-list" style="list-style-type: decimal;">
-            <li>去除长度小于50的reads对；</li>
-            <li>reads中N碱基的比例大于10%时，需要去除此对reads；</li>
-            <li>去除Q20小于80%的reads对（Q20指reads的碱基质量分数大于等于20）。</li>
+        <h3 style="color: #222; border-left: 4px solid #da1e33; padding-left: 10px; font-size: 18px; margin: 20px 0 15px 0; font-weight: bold;">数据处理步骤：</h3>
+        <ol style="list-style-type: decimal; margin: 10px 0 10px 0; padding-left: 1.8em; line-height: 1.9; color: #3E3A39;">
+            <li style="margin-bottom: 6px;">去除长度小于50的reads对；</li>
+            <li style="margin-bottom: 6px;">reads中N碱基的比例大于10%时，需要去除此对reads；</li>
+            <li style="margin-bottom: 6px;">去除Q20小于80%的reads对（Q20指reads的碱基质量分数大于等于20）。</li>
         </ol>
 
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
@@ -1006,7 +1021,16 @@ class CRISPRReportGenerator:
         # Clean Summary数据
         if self.clean_summary is not None:
             html += '<h3>数据质控统计</h3>'
-            
+
+            # Q20/Q30/GC 等数值列保留两位小数
+            for col in self.clean_summary.columns:
+                col_lower = col.lower()
+                if any(k in col_lower for k in ('q20', 'q30', 'gc', 'rate', 'effective')):
+                    try:
+                        self.clean_summary[col] = pd.to_numeric(self.clean_summary[col], errors='coerce').round(2)
+                    except Exception:
+                        pass
+
             # 获取CSV相对路径
             rel_path = None
             for rel_path_key, files in self.data_files.items():
@@ -1017,7 +1041,7 @@ class CRISPRReportGenerator:
                 if rel_path:
                     break
             
-            html += self.generate_table_html(self.clean_summary, "Clean Summary 数据概览", 
+            html += self.generate_table_html(self.clean_summary.head(1), "Clean Summary 数据概览",
                                             relative_path=rel_path)
             
             html += '''
@@ -1051,6 +1075,15 @@ class CRISPRReportGenerator:
         html = ''
         
         if self.mapping_result is not None:
+            # Mean_depth / Median_depth / Max_depth / skew_ratio 保留两位小数
+            for col in self.mapping_result.columns:
+                col_lower = col.lower()
+                if col_lower in ('mean_depth', 'median_depth', 'max_depth', 'skew_ratio'):
+                    try:
+                        self.mapping_result[col] = pd.to_numeric(self.mapping_result[col], errors='coerce').round(2)
+                    except Exception:
+                        pass
+
             # 获取CSV相对路径
             rel_path = None
             for rel_path_key, files in self.data_files.items():
@@ -1142,7 +1175,7 @@ class CRISPRReportGenerator:
 
     def _get_style_css(self):
         """获取style.css完整内容"""
-        return '''/* ========== 封面页样式 ========== */
+        return '''/* ========== 封面页：宽屏横版，左文右图布局 ========== */
 .report-cover {
     width: 100%;
     background-color: #fff;
@@ -1150,16 +1183,19 @@ class CRISPRReportGenerator:
     page-break-after: always;
     box-sizing: border-box;
 }
+/* 封面专用内容宽：与正文容器一致 1200px，适配宽屏横版 */
 .report-cover-inner {
-    max-width: 920px;
+    max-width: 1200px;
     margin: 0 auto;
     width: 100%;
     box-sizing: border-box;
-    padding: 0 12px;
+    padding: 0 24px;
 }
+
+/* 顶部：左侧 logo.png */
 .cover-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: flex-start;
     padding: 20px 0 12px;
     background: #ffffff;
@@ -1172,43 +1208,40 @@ class CRISPRReportGenerator:
     display: block;
     object-fit: contain;
 }
+/* 主体：横版左右布局，左文右图 */
 .cover-body {
     background-color: #ffffff;
     display: flex;
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
     padding: 0 0 8px;
+    gap: 40px;
+    min-height: 420px;
 }
+/* 左侧：标题+红标，统一左对齐 */
 .cover-body-upper {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
+    align-items: flex-start;
+    justify-content: center;
+    flex: 0 0 auto;
     padding: 0;
     margin-bottom: 0;
     box-sizing: border-box;
 }
-.cover-artwork {
-    width: 100%;
-    height: auto;
-    display: block;
-    margin-top: clamp(-4px, -0.8vh, -16px);
-    margin-bottom: 0;
-    object-fit: contain;
-    object-position: center top;
-}
 .cover-center-block {
-    text-align: center;
-    width: 100%;
+    text-align: left;
+    width: auto;
     max-width: 100%;
-    margin-top: clamp(72px, 12vh, 148px);
+    margin-top: 0;
     margin-bottom: 0;
     padding-top: 0;
     padding-bottom: 0;
 }
 .cover-main-title {
     margin: 0 0 0.14em 0;
-    font-size: clamp(72px, 12vw, 124px);
+    font-size: clamp(56px, 7vw, 100px);
     font-weight: 800;
     color: #111111;
     letter-spacing: 0.04em;
@@ -1221,7 +1254,7 @@ class CRISPRReportGenerator:
     margin-bottom: 0;
     padding: 0.6em 1.8em;
     min-width: 0;
-    font-size: clamp(20px, 3vw, 32px);
+    font-size: clamp(18px, 2.5vw, 28px);
     font-weight: 700;
     color: #ffffff;
     background: #d81e31;
@@ -1229,8 +1262,69 @@ class CRISPRReportGenerator:
     letter-spacing: 0.35em;
     text-indent: 0.35em;
 }
+/* 右侧：背景插画，整体位于画面右半部分 */
+.cover-artwork {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 55%;
+    height: auto;
+    display: block;
+    margin-top: 0;
+    margin-bottom: 0;
+    object-fit: contain;
+    object-position: center center;
+}
+/* 左下角：协议编号 */
+.cover-footer {
+    padding: 0 0 16px;
+    background: #ffffff;
+}
+.cover-protocol {
+    font-size: 18px;
+    font-weight: 700;
+    color: #000000;
+    letter-spacing: 0.02em;
+}
 
-/* ========== 基础样式 ========== */
+@media (max-width: 768px) {
+    .report-cover-inner {
+        padding: 0 16px;
+        max-width: 100%;
+    }
+    .cover-header {
+        padding: 16px 0 10px;
+    }
+    /* 小屏回退为纵向堆叠 */
+    .cover-body {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+        min-height: auto;
+    }
+    .cover-body-upper {
+        align-items: flex-start;
+    }
+    .cover-center-block {
+        text-align: left;
+        margin-top: 16px;
+    }
+    .cover-main-title {
+        font-size: clamp(42px, 10vw, 72px);
+    }
+    .cover-artwork {
+        max-width: 100%;
+        width: 100%;
+    }
+    .cover-protocol {
+        font-size: 15px;
+    }
+}
+
+/* 基础样式重置 */
+html, body, div, ul, ol {
+    margin: 0;
+    padding: 0;
+}
 html, body, div, ul, ol { margin: 0; padding: 0; }
 body {
     font-family: 'Source Sans 3', 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', sans-serif;
@@ -1307,24 +1401,21 @@ a:hover { text-decoration: underline; }
 .toc-sidebar .tocify ul a { text-decoration: none; display: block; padding: 0; border: none; }
 .toc-sidebar .tocify-header > .tocify-item > a { color: #5c6b7a; font-weight: 400; }
 .toc-sidebar .tocify-header > .tocify-item { padding: 10px 18px; margin: 2px 0; }
-/* 取消选中时整行背景变色（覆盖 Bootstrap nav .active 等） */
-.toc-sidebar .tocify .tocify-item.active,
-.toc-sidebar .tocify li.active,
 .toc-sidebar .tocify-header > .tocify-item.active {
-    background: transparent !important;
-    background-color: transparent !important;
-    font-weight: 400;
+    background: #DFE7F0;
+    font-weight: 700;
 }
-.toc-sidebar .tocify-header > .tocify-item.active > a { color: #5c6b7a; font-weight: 400; }
+.toc-sidebar .tocify-header > .tocify-item.active > a { color: #000000; font-weight: 700; }
+.toc-sidebar .tocify-header:has(.tocify-subheader li.active) > li.tocify-item:first-of-type {
+    background: #DFE7F0;
+}
+.toc-sidebar .tocify-header:has(.tocify-subheader li.active) > li.tocify-item:first-of-type > a {
+    color: #000000;
+    font-weight: 700;
+}
 .toc-sidebar .tocify-subheader .tocify-item { padding: 8px 18px 8px 32px; margin: 0; }
 .toc-sidebar .tocify-subheader .tocify-item > a { color: #3e3a39; font-weight: 400; font-size: 13px; }
-.toc-sidebar .tocify-subheader .tocify-item.active > a { color: #3e3a39; font-weight: 400; }
-.toc-sidebar .tocify li.active > a,
-.toc-sidebar .tocify .nav-link.active,
-.toc-sidebar .tocify a.active {
-    background: transparent !important;
-    background-color: transparent !important;
-}
+.toc-sidebar .tocify-subheader .tocify-item.active > a { color: #da1e33; font-weight: 600; }
 
 /* ========== 主内容区 ========== */
 .main-content {
@@ -1399,7 +1490,7 @@ h2.section-title-modern .num-box {
     flex-shrink: 0;
 }
 .report-section h3 {
-    color: #da1e33;
+    color: #222;
     font-size: 18px;
     margin: 20px 0 15px 0;
     padding-left: 10px;
@@ -1410,18 +1501,31 @@ h2.section-title-modern .num-box {
 
 /* ========== 段落样式 ========== */
 .paragraph { text-indent: 2em; line-height: 1.8; margin: 10px 0; }
-.para-no-indent { font-size: 14px; line-height: 1.6; margin: 10px 0; }
-.overview-list { list-style: none; margin: 10px 0 10px 0; padding: 0; font-size: 14px; }
+.para-no-indent { font-size: 14px; text-indent: 0; line-height: 1.8; color: #3E3A39; margin: 10px 0; }
+.overview-list { list-style: none; margin: 10px 0 10px 0; padding: 0; }
 .overview-list li {
     position: relative;
     padding-left: 18px;
     font-size: 14px;
-    font-weight: 400;
-    line-height: 1.4;
+    line-height: 1.9;
     color: #3E3A39;
     margin-bottom: 6px;
 }
-.overview-list li::before { content: "·"; position: absolute; left: 0; color: #3E3A39; font-weight: bold; font-size: 14px; line-height: 1.4; }
+.overview-list li::before { content: "·"; position: absolute; left: 0; color: #3E3A39; font-weight: bold; }
+
+/* 红条标题 */
+.title-bar-red {
+    border-left: 4px solid #da1e33;
+    padding-left: 10px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+    margin: 25px 0 15px 0;
+}
+/* 红色副标题 */
+.subtitle-red { color: #da1e33; font-size: 16px; margin: 20px 0 10px 0; }
+/* 黑色副标题 */
+.subtitle-black { color: #000; font-size: 15px; font-weight: bold; margin: 15px 0 10px 0; }
 
 /* 圆角信息框 */
 .rounded-info-box {
@@ -1497,16 +1601,13 @@ h2.section-title-modern .num-box {
 .data-table tbody tr:hover td { background: #d4d9df; transition: background 0.3s ease; }
 .data-table-static th { cursor: default; }
 .data-table-static th:hover { background: #da1e33; }
-.sort-indicator::after { content: ' ⇅'; font-size: 11px; opacity: 0.5; }
-.sort-indicator.asc::after { content: ' ↑'; opacity: 1; }
-.sort-indicator.desc::after { content: ' ↓'; opacity: 1; }
-.sort-icon::after { content: ' ↕'; font-size: 10px; opacity: 0.5; }
+/* 排序指示器实例样式继承上方 th .sort-indicator 规则 */
 
 /* ========== gy表格样式 ========== */
-.gy { font-family: 'Source Sans 3', 'Noto Sans SC', sans-serif; width: 100%; border-collapse: collapse; margin: 15px auto; }
+.gy { font-family: 'Source Sans 3', 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', sans-serif; width: 100%; border-collapse: collapse; margin: 15px auto; }
 .gy.fixed-first-col { table-layout: fixed; width: 100%; }
 .gy.fixed-first-col th:first-child, .gy.fixed-first-col td:first-child { width: 40ch; min-width: 40ch; max-width: 40ch; overflow: hidden; text-overflow: ellipsis; }
-.gy th { font-size: 1em; border: 2px solid #ffffff; padding: 12px 15px; text-align: center; word-break: keep-all; white-space: nowrap; background-color: #da1e33; color: #ffffff; font-weight: 500; }
+.gy th { position: relative; font-size: 1em; border: 2px solid #ffffff; padding: 12px 15px; text-align: center; word-break: keep-all; white-space: nowrap; background-color: #da1e33; color: #ffffff; font-weight: 500; }
 .gy td { font-size: 1em; border: 2px solid #ffffff; padding: 10px 15px; text-align: center; word-break: keep-all; white-space: nowrap; color: #333333; }
 .gy tr:nth-child(odd) { background: #f8f9fa; }
 .gy tr:nth-child(even) { background: #e2e6ea; }
@@ -1547,6 +1648,34 @@ h2.section-title-modern .num-box {
 .image-container.fullscreen-div { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #ffffff; display: flex; align-items: center; justify-content: center; cursor: zoom-out; }
 .image-container.fullscreen-div img { width: auto; height: auto; max-width: 90vw; max-height: 90vh; cursor: zoom-out; }
 
+/* ========== 现代Tab选项卡样式 ========== */
+.modern-tab-header {
+    background: #858d98;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    padding: 0 20px;
+    align-items: flex-end;
+    overflow-x: auto;
+}
+.modern-tab-item {
+    color: #d1d4d7;
+    padding: 15px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+.modern-tab-item:hover { color: #fff; }
+.modern-tab-item.active { color: #fff; font-weight: bold; }
+.modern-tab-content {
+    display: none;
+    padding: 20px;
+    background: #fff;
+    border-radius: 0 0 16px 16px;
+    text-align: center;
+}
+.modern-tab-content.active { display: block; }
+
 /* ========== 筛选弹窗样式 ========== */
 .filter-modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: fadeIn 0.3s; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -1584,43 +1713,72 @@ h2.section-title-modern .num-box {
 .modern-filter-btn:hover { background: #e6e9ec; color: #333; }
 .filter-count-badge { background: #da1e33; color: white; border-radius: 10px; padding: 1px 6px; font-size: 12px; margin-left: 6px; display: none; }
 
-/* ========== 分页样式 ========== */
-.table-pagination { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #f8f9fa; border-radius: 4px; margin-top: 10px; border: 1px solid #dee2e6; border-top: none; }
-.pagination-info { color: #666; font-size: 13px; }
-.pagination-controls { display: flex; align-items: center; gap: 8px; }
-.pagination-controls .btn { padding: 4px 12px; font-size: 12px; cursor: pointer; }
+/* ========== 分页样式（精简风格：Prev/Next + 页码方块）========== */
+.table-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+.pagination-info { color: #888; font-size: 13px; }
+.pagination-controls { display: flex; align-items: center; gap: 6px; }
+/* Prev / Next 文本 */
+.page-nav {
+    font-size: 13px; color: #555; cursor: pointer; user-select: none; padding: 2px 4px;
+}
+.page-nav:hover { color: #222; }
+.page-nav.disabled { color: #bbb; cursor: default; pointer-events: none; }
+/* < > 箭头 */
+.page-arrow {
+    font-size: 14px; color: #555; cursor: pointer; user-select: none; padding: 2px 4px; font-family: monospace;
+}
+.page-arrow:hover { color: #222; }
+.page-arrow.disabled { color: #bbb; cursor: default; pointer-events: none; }
+/* 页码数字容器 */
+.page-nums { display: flex; align-items: center; gap: 4px; }
+/* 单个页码方块 */
+.page-num {
+    display: inline-flex; justify-content: center; align-items: center;
+    min-width: 28px; height: 28px; font-size: 13px; color: #555;
+    cursor: pointer; user-select: none; border-radius: 4px; transition: all 0.15s ease;
+}
+.page-num:hover { color: #222; background: #e8e8e8; }
+.page-num.active { background: #e3edf5; color: #da1e33; font-weight: 600; cursor: default; }
 .page-info { color: #333; font-size: 13px; margin: 0 10px; }
 
-/* ========== 下载链接（覆盖 Bootstrap a 颜色，文字纯黑、图标红色）========== */
-.name_table { margin: 15px 0 5px 0; text-align: left; }
-a.table-caption-link,
-a.table-caption-link:link,
-a.table-caption-link:visited,
-a.table-caption-link:active {
-    display: inline-flex;
-    align-items: center;
-    text-decoration: none !important;
-    font-size: 16px;
-    font-weight: 500;
-    transition: all 0.3s;
+/* ========== 下载链接 ========== */
+.name_table { margin: 10px 0 2px 0; text-align: left; }
+.table-caption-link {
+    display: inline-flex; align-items: center; color: #333333;
+    text-decoration: none; font-size: 16px; font-weight: 500; transition: all 0.3s ease;
 }
-a.table-caption-link:hover { text-decoration: none !important; }
-a.table-caption-link .download-text {
-    color: #000000 !important;
-    border-bottom: 1px solid #888888;
+.table-caption-link .download-text {
+    text-decoration: underline; text-decoration-color: #cccccc;
+    text-underline-offset: 3px; text-decoration-thickness: 1px;
 }
-a.table-caption-link:hover .download-text {
-    color: #000000 !important;
-    border-bottom-color: #666666;
-}
-a.table-caption-link .download-icon { margin-right: 8px; display: inline-flex; align-items: center; justify-content: center; }
-a.table-caption-link .download-icon svg { fill: #da1e33; width: 20px; height: 20px; }
+.table-caption-link:hover .download-text { color: #da1e33; text-decoration-color: #da1e33; }
+.table-caption-link .download-icon { margin-right: 8px; display: inline-flex; align-items: center; justify-content: center; }
+.table-caption-link .download-icon svg { fill: #da1e33; width: 20px; height: 20px; }
 
 /* ========== 返回顶部 ========== */
-#goTopBtn { position: fixed; right: 30px; bottom: 30px; width: 45px; height: 45px; background: #fff; border: 2px solid #da1e33; border-radius: 50%; cursor: pointer; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); transition: all 0.3s; }
-#goTopBtn:hover { background: #da1e33; }
-#goTopBtn:hover svg path { fill: #fff; }
+#goTopBtn {
+    position: fixed; text-align: center; line-height: 30px;
+    width: 40px; height: 40px; bottom: 35px; right: 20px;
+    cursor: pointer; background: #F7F7F7; border: 1px solid #D1D1D1;
+    border-radius: 50%; transition: all 0.3s ease; z-index: 1000;
+}
+#goTopBtn:hover { background: #da1e33; transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+#goTopBtn:hover svg path { fill: #ffffff; }
 @media (max-width: 768px) { #goTopBtn { right: 15px; bottom: 15px; } }
+
+/* ========== 列排序指示器 ========== */
+th .sort-indicator { position: absolute; margin-left: 3px; opacity: 0.3; }
+th .sort-indicator::before { content: "↕"; }
+th.sorted-asc .sort-indicator::before { content: "↑"; opacity: 1; color: #da1e33; }
+th.sorted-desc .sort-indicator::before { content: "↓"; opacity: 1; color: #da1e33; }
 
 /* ========== 打印样式 ========== */
 @media print {
@@ -1633,16 +1791,16 @@ a.table-caption-link .download-icon svg { fill: #da1e33; width: 20px; height: 20
     def _get_base_css(self):
         """获取base.css内容"""
         return '''a, img { border-style: none; outline: none !important }
-body { font-size: 14px; padding: 12px; font-family: 'Source Sans 3', 'Noto Sans SC', 'Microsoft YaHei', sans-serif; }
+body { font-size: 14px; padding: 12px; font-family: 'Source Sans 3', 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', sans-serif; }
 h1 { font-size: 30px; text-align: center; }
 h2 { font-size: 24px; }
 h3 { font-size: 18px; text-indent: 0.5em; }
 h4 { font-size: 16px; text-indent: 1em; }
-p.head { text-align: right; color: grey; }
+p.head { text-align: right; color: grey; font-family: 'Noto Sans SC', 'Source Han Sans SC', 'Microsoft YaHei', 'PingFang SC', sans-serif; }
 p.paragraph { text-indent: 2em; line-height: 1.5; }
 p.center { text-align: center; }
 img.normal { height: auto; width: 100%; margin: auto; }
-table { font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif; font-size: 14px; width: 100%; border-collapse: collapse; text-align: center; padding: 3px 10px 2px 10px; }
+table { font-family: 'Noto Sans SC', 'Source Han Sans SC', 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size: 14px; width: 100%; border-collapse: collapse; text-align: center; padding: 3px 10px 2px 10px; }
 #goTopBtn { position: fixed; text-align: center; line-height: 30px; width: 30px; height: 33px; font-size: 12px; cursor: pointer; right: 0px; }
 .bs-docs-qa { position: relative; margin: 15px 0; padding: 19px 19px 14px; background-color: #fff; border: 1px solid #ddd; border-radius: 4px; }
 .alert-qa { background-color: #eeeeee; border-color: #dddddd; }
@@ -1819,14 +1977,50 @@ function updatePaginationDisplay(tableId) {
     for (var i = 0; i < tr.length; i++) {
         if (tr[i].style.display !== 'none') { visibleCount++; }
     }
+    var data = window.tableData[tableId];
+    var filteredData = window.tableFilteredData[tableId];
+    var displayData = filteredData || data;
+    var totalRows = displayData ? displayData.length : 0;
+    var meta = window._tableMeta && window._tableMeta[tableId];
+    var maxRows = (meta ? meta.maxRows : null) || window.tableMaxRows[tableId] || 10;
+    var totalPages = Math.ceil(totalRows / maxRows) || 1;
+    var current = window.tablePage[tableId] || 1;
+    if (current > totalPages) current = totalPages;
+    if (current < 1) current = 1;
     var pagination = document.getElementById(tableId + '_pagination');
     if (!pagination) return;
     var infoSpan = pagination.querySelector('.pagination-info');
     if (infoSpan) {
-        var totalRows = window.tableFilteredData[tableId] ? window.tableFilteredData[tableId].length : (window.tableData[tableId] ? window.tableData[tableId].length : 0);
-        if (window.tableFilteredData[tableId]) { infoSpan.textContent = `共 ${totalRows} 行，筛选出 ${visibleCount} 行`; }
-        else { infoSpan.textContent = `共 ${totalRows} 行，显示 ${visibleCount} 行`; }
+        if (filteredData) { infoSpan.textContent = '筛选 ' + totalRows + ' 行'; }
+        else { infoSpan.textContent = '共 ' + totalRows + ' 行'; }
     }
+    if (typeof renderPageNumbers === 'function') { renderPageNumbers(tableId, totalPages, current); }
+    var prevNav = pagination.querySelector('.prev-nav');
+    var prevArrow = pagination.querySelector('.page-arrow-prev');
+    var nextArrow = pagination.querySelector('.page-arrow-next');
+    var nextNav = pagination.querySelector('.next-nav');
+    if (prevNav) prevNav.classList.toggle('disabled', current <= 1);
+    if (prevArrow) prevArrow.classList.toggle('disabled', current <= 1);
+    if (nextArrow) nextArrow.classList.toggle('disabled', current >= totalPages);
+    if (nextNav) nextNav.classList.toggle('disabled', current >= totalPages);
+}
+
+function renderPageNumbers(tableId, totalPages, current) {
+    var container = document.getElementById(tableId + '_pageNums');
+    if (!container) return;
+    if (totalPages <= 1) { container.innerHTML = ''; return; }
+    var start = Math.max(1, current - 2);
+    var end = Math.min(totalPages, current + 2);
+    if (end - start < 4) {
+        if (start === 1) { end = Math.min(totalPages, start + 4); }
+        else { start = Math.max(1, end - 4); }
+    }
+    var html = '';
+    for (var i = start; i <= end; i++) {
+        var cls = (i === current) ? 'page-num active' : 'page-num';
+        html += '<span class="' + cls + '" onclick="goToPage(\\'' + tableId + '\\', ' + i + ')">' + i + '</span>';
+    }
+    container.innerHTML = html;
 }
 
 function goToPage(tableId, pageNum) {
@@ -1834,8 +2028,9 @@ function goToPage(tableId, pageNum) {
     if (!data) return;
     var filteredData = window.tableFilteredData[tableId];
     var displayData = filteredData || data;
-    var maxRows = window.tableMaxRows[tableId] || 10;
-    var totalPages = Math.ceil(displayData.length / maxRows);
+    var meta = window._tableMeta && window._tableMeta[tableId];
+    var maxRows = (meta ? meta.maxRows : null) || window.tableMaxRows[tableId] || 10;
+    var totalPages = Math.ceil(displayData.length / maxRows) || 1;
     if (pageNum > totalPages) { pageNum = totalPages; }
     if (pageNum < 1) { pageNum = 1; }
     var tbody = document.getElementById(tableId + '_body');
@@ -1844,39 +2039,43 @@ function goToPage(tableId, pageNum) {
     var end = Math.min(start + maxRows, displayData.length);
     tbody.innerHTML = displayData.slice(start, end).join('');
     window.tablePage[tableId] = pageNum;
-    var currentSpan = document.getElementById(tableId + '_current');
-    if (currentSpan) { currentSpan.textContent = pageNum; }
-    var pageInfo = document.querySelector('#' + tableId + '_pagination .page-info');
-    if (pageInfo) { pageInfo.innerHTML = '<span id="' + tableId + '_current">' + pageNum + '</span> / ' + totalPages; }
-    updatePaginationButtons(tableId, totalPages);
+    if (typeof renderPageNumbers === 'function') { renderPageNumbers(tableId, totalPages, pageNum); }
+    var pagination = document.getElementById(tableId + '_pagination');
+    if (pagination) {
+        var prevNav = pagination.querySelector('.prev-nav');
+        var prevArrow = pagination.querySelector('.page-arrow-prev');
+        var nextArrow = pagination.querySelector('.page-arrow-next');
+        var nextNav = pagination.querySelector('.next-nav');
+        if (prevNav) prevNav.classList.toggle('disabled', pageNum === 1);
+        if (prevArrow) prevArrow.classList.toggle('disabled', pageNum === 1);
+        if (nextArrow) nextArrow.classList.toggle('disabled', pageNum >= totalPages);
+        if (nextNav) nextNav.classList.toggle('disabled', pageNum >= totalPages);
+        var infoSpan = pagination.querySelector('.pagination-info');
+        if (infoSpan) {
+            var totalRows = filteredData ? filteredData.length : (data ? data.length : 0);
+            var s = (pageNum - 1) * maxRows + 1;
+            var e = Math.min(pageNum * maxRows, totalRows);
+            if (filteredData) { infoSpan.textContent = '筛选 ' + totalRows + ' 行，显示 ' + s + '-' + e + ' 行'; }
+            else { infoSpan.textContent = '共 ' + totalRows + ' 行，显示 ' + s + '-' + e + ' 行'; }
+        }
+    }
     if (event) { event.preventDefault(); event.stopPropagation(); }
 }
 
-function prevPage(tableId) { var current = window.tablePage[tableId] || 1; goToPage(tableId, current - 1); }
-function nextPage(tableId) { var current = window.tablePage[tableId] || 1; goToPage(tableId, current + 1); }
-
-function updatePaginationButtons(tableId, totalPages) {
+function prevPage(tableId) {
     var current = window.tablePage[tableId] || 1;
-    var pagination = document.getElementById(tableId + '_pagination');
-    if (!pagination) return;
-    var buttons = pagination.querySelectorAll('.pagination-controls .btn');
-    if (buttons.length >= 4) {
-        buttons[0].disabled = (current === 1);
-        buttons[1].disabled = (current === 1);
-        buttons[2].disabled = (current === totalPages);
-        buttons[3].disabled = (current === totalPages);
-    }
-    var infoSpan = pagination.querySelector('.pagination-info');
-    if (infoSpan) {
-        var filteredData = window.tableFilteredData[tableId];
-        var data = window.tableData[tableId];
-        var totalRows = filteredData ? filteredData.length : (data ? data.length : 0);
-        var maxRows = window.tableMaxRows[tableId] || 10;
-        var start = (current - 1) * maxRows + 1;
-        var end = Math.min(current * maxRows, totalRows);
-        if (filteredData) { infoSpan.textContent = `共 ${totalRows} 行，筛选出 ${filteredData.length} 行，显示 ${start}-${Math.min(end, filteredData.length)} 行`; }
-        else { infoSpan.textContent = `共 ${totalRows} 行，显示 ${start}-${end} 行`; }
-    }
+    if (current > 1) goToPage(tableId, current - 1);
+}
+function nextPage(tableId) {
+    var data = window.tableData[tableId];
+    var filteredData = window.tableFilteredData[tableId];
+    var displayData = filteredData || data;
+    if (!displayData) return;
+    var meta = window._tableMeta && window._tableMeta[tableId];
+    var maxRows = (meta ? meta.maxRows : null) || window.tableMaxRows[tableId] || 10;
+    var totalPages = Math.ceil(displayData.length / maxRows) || 1;
+    var current = window.tablePage[tableId] || 1;
+    if (current < totalPages) goToPage(tableId, current + 1);
 }
 
 // ========== 多条件筛选 ==========
@@ -1898,7 +2097,7 @@ function addFilterCondition(tableId) {
     var fieldOptions = templateSelect ? templateSelect.innerHTML : '';
     var conditionHtml = '<div class="filter-condition" id="' + tableId + '_condition_' + conditionId + '">' +
         '<select class="field-select" onchange="updateOperatorOptions(\\'' + tableId + '\\', \\'' + conditionId + '\\')">' + fieldOptions + '</select>' +
-        '<select class="operator-select"><option value=">">></option><option value=">=">>=</option><option value="<"><</option><option value="<="><=</option><option value="=">=</option></select>' +
+        '<select class="operator-select"><option value=">">></option><option value=">=">>=</option><option value="<"><</option><option value="<="><=</option><option value="=">=</option><option value="|x|>">|x|></option></select>' +
         '<input type="text" class="value-input" placeholder="数值">' +
         '<button class="remove-condition" onclick="removeFilterCondition(\\'' + tableId + '\\', \\'' + conditionId + '\\')">&times;</button></div>';
     conditionsContainer.insertAdjacentHTML('beforeend', conditionHtml);
@@ -1920,7 +2119,7 @@ function updateOperatorOptions(tableId, conditionId) {
     var fieldType = selectedOption ? selectedOption.getAttribute('data-type') : 'text';
     operatorSelect.innerHTML = '';
     if (fieldType === 'numeric') {
-        operatorSelect.innerHTML = '<option value=">">></option><option value=">=">>=</option><option value="<"><</option><option value="<="><=</option><option value="=">=</option>';
+        operatorSelect.innerHTML = '<option value=">">></option><option value=">=">>=</option><option value="<"><</option><option value="<="><=</option><option value="=">=</option><option value="|x|>">|x|></option>';
     } else {
         operatorSelect.innerHTML = '<option value="=">=</option>';
     }
@@ -2002,6 +2201,7 @@ function checkCondition(tdList, condition) {
             case '<': return numValue < numTarget;
             case '<=': return numValue <= numTarget;
             case '=': return numValue === numTarget;
+            case '|x|>': return Math.abs(numValue) > Math.abs(numTarget);
             default: return true;
         }
     } else {
@@ -2013,6 +2213,18 @@ function checkCondition(tdList, condition) {
 window.onclick = function(event) {
     var modals = document.querySelectorAll('.filter-modal');
     modals.forEach(function(modal) { if (event.target === modal) { modal.style.display = 'none'; } });
+}
+
+// 现代版 Tab 切换
+function switchModernTab(element, targetId, groupPrefix) {
+    var tabs = element.parentElement.querySelectorAll('.modern-tab-item');
+    tabs.forEach(function(tab) { tab.classList.remove('active'); });
+    element.classList.add('active');
+    var container = element.closest('.modern-img-group');
+    var contents = container.querySelectorAll('.modern-tab-content');
+    contents.forEach(function(content) { content.classList.remove('active'); });
+    var target = document.getElementById(targetId);
+    if (target) { target.classList.add('active'); }
 }
 '''
 

@@ -1,0 +1,425 @@
+- generic [active] [ref=e1]:
+  - navigation "快速通道" [ref=e2]:
+    - generic [ref=e3]:
+      - text: 快速通道
+      - generic:
+        - img
+    - generic [ref=e5]:
+      - list [ref=e6]:
+        - listitem [ref=e7]:
+          - generic [ref=e8]: 1项目摘要
+        - list [ref=e9]:
+          - listitem [ref=e10]:
+            - generic [ref=e11]: 技术概述
+          - listitem [ref=e12]:
+            - generic [ref=e13]: gRNA文库应用
+          - listitem [ref=e14]:
+            - generic [ref=e15]: 实验流程
+      - list [ref=e16]:
+        - listitem [ref=e17]:
+          - generic [ref=e18]: 2数据质控
+        - list [ref=e19]:
+          - listitem [ref=e20]:
+            - generic [ref=e21]: 测序质量与错误率分布统计
+          - listitem [ref=e22]:
+            - generic [ref=e23]: 原始数据过滤说明
+          - listitem [ref=e24]:
+            - generic [ref=e25]: 数据处理步骤：
+          - listitem [ref=e26]:
+            - generic [ref=e27]: 数据质控统计
+          - listitem [ref=e28]:
+            - generic [ref=e29]: 原始数据质量分布图
+      - list [ref=e30]:
+        - listitem [ref=e31]:
+          - generic [ref=e32]: 3Reads比对分析
+        - list [ref=e33]:
+          - listitem [ref=e34]:
+            - generic [ref=e35]: Reads比对数据统计
+          - listitem [ref=e36]:
+            - generic [ref=e37]: sgRNA Counts 详细数据
+      - list [ref=e38]:
+        - listitem [ref=e39]:
+          - generic [ref=e40]: 4图表展示
+        - list [ref=e41]:
+          - listitem [ref=e42]:
+            - generic [ref=e43]: 测序深度分布
+          - listitem [ref=e44]:
+            - generic [ref=e45]: 均一性分析
+  - generic [ref=e46]:
+    - generic [ref=e47]:
+      - generic [ref=e49]:
+        - img "源井生物" [ref=e52]
+        - generic [ref=e55]:
+          - heading "sgRNA文库" [level=1] [ref=e56]
+          - generic [ref=e57]: 分析报告
+        - generic [ref=e58]: 协议编号：YJ16545465315453
+      - banner [ref=e59]:
+        - heading [level=1]
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - generic [ref=e63]: 项目编号
+            - generic [ref=e64]: GK250830-01-LHJ2573
+          - generic [ref=e65]:
+            - generic [ref=e66]: 数据类型
+            - generic [ref=e67]: sgRNA文库测序分析
+          - generic [ref=e68]:
+            - generic [ref=e69]: 报告类型
+            - generic [ref=e70]: sgRNA文库分析报告
+          - generic [ref=e71]:
+            - generic [ref=e72]: 报告时间
+            - generic [ref=e73]: 2026-06-09
+      - generic [ref=e74]:
+        - separator [ref=e75]
+        - generic [ref=e76]:
+          - heading "1 项目摘要" [level=2] [ref=e77]:
+            - generic [ref=e78]: "1"
+            - text: 项目摘要
+          - heading "技术概述" [level=3] [ref=e79]
+          - paragraph [ref=e80]: gRNA文库构建基本原理是通过一段与靶标DNA相同的gRNA指导Cas9核酸酶对靶向基因进行DNA修饰，以此造成基因的功能突变或缺失。在此基础上，利用CRISPR/Cas9技术建立哺乳动物全基因组突变库或者与某类功能相关的基因突变体库，通过功能性筛选和富集以及随后的PCR扩增和深度测序分析，发掘与筛选表型相关的基因，称为 CRISPR/Cas9 gRNA文库筛选。
+          - heading "gRNA文库应用" [level=3] [ref=e81]
+          - paragraph [ref=e82]: gRNA文库是药物筛选或靶向筛选特定通路的理想工具，gRNA文库的建立将在功能基因筛选、疾病机制研究及药物研发等方面发挥重要的功能。gRNA文库包括全基因组文库、lncRNA文库、信号通路、细胞凋亡、细胞增殖、离子通道、核受体相关、各种疾病相关等文库。
+          - heading "实验流程" [level=3] [ref=e83]
+          - heading "1.1 文库制备" [level=4] [ref=e84]
+          - paragraph [ref=e85]: DNA样品经DNA片段化(Shear)、末端补平(End repair)、片段3端加A尾(Add 3'A Tail)、连接接头(Ligate Adapters)、片段筛选(Clean)、PCR扩增(Enrich with PCR)、片段筛选(Clean)、PCR产物质检(QC)等步骤构建形成Illumina平台高通量测序文库。
+          - img "文库制备流程图" [ref=e87]
+          - heading "1.2 测序" [level=4] [ref=e88]
+          - paragraph [ref=e89]: Illumina平台上机测序，采用双端150bp测序模式。fastq是测序数据下机格式，其中包含测序序列(reads)的序列信息，及其对应的测序质量信息。fastq格式文件中每个read由四行描述，如下：
+          - heading "1.3 数据分析" [level=4] [ref=e90]
+          - paragraph [ref=e91]: 本报告使用MAGeCKFlute进行CRISPR文库筛选数据的分析。MAGeCKFlute是一个综合性的CRISPR筛选数据分析工具，整合了MAGeCK和MAGeCKFlute的功能，能够进行sgRNA级别的质量控制、基因水平的阳性/阴性筛选、以及下游富集分析。
+          - heading "1.3.1 测序数据质控" [level=4] [ref=e92]
+          - paragraph [ref=e93]: 对原始测序数据进行质量控制（QC），去除低质量 Reads 和接头污染序列，获得 Clean Reads 用于后续分析。
+          - heading "1.3.2 Reads 比对" [level=4] [ref=e94]
+          - paragraph [ref=e95]: 将 Clean Reads 与 sgRNA 文库参考序列进行比对，提取并统计各 sgRNA 的 Reads 数目。
+          - heading "1.3.3 统计分析" [level=4] [ref=e96]
+          - paragraph [ref=e97]: 对比对结果进行统计分析，包括比对上的 Reads 数量、覆盖的 sgRNA 和基因数目、覆盖率及Reads 均一性等质控指标。
+      - generic [ref=e98]:
+        - separator [ref=e99]
+        - generic [ref=e100]:
+          - heading "2 数据质控" [level=2] [ref=e101]:
+            - generic [ref=e102]: "2"
+            - text: 数据质控
+          - heading "测序质量与错误率分布统计" [level=3] [ref=e103]
+          - paragraph [ref=e104]: 测序错误率与碱基质量有关，受测序仪本身、测序试剂、样品等多个因素共同影响。对于Illumina高通量测序平台，测序质量和错误率分布具有两个特点：
+          - list [ref=e105]:
+            - listitem [ref=e106]: · 每个read的前几个碱基的测序质量一般较低，这是由于边合成边测序过程初始阶段，测序仪荧光感光元件对焦速度较慢。获取的荧光图像质量较低，导致碱基识别错误率较高。
+            - listitem [ref=e107]: · 随着测序的进行，错误率会升高，测序质量降低，这是由于测试过程中荧光基团的不完全切割和de-phasing引起荧光信号衰减。
+          - heading "质量分数与错误率换算关系" [level=4] [ref=e108]
+          - paragraph [ref=e109]: 如果碱基的质量分数用Q表示，识别错误率用P表示，则碱基的质量分数和错误率能用以下公式表示：
+          - generic [ref=e110]:
+            - paragraph [ref=e111]:
+              - strong [ref=e112]: Q = -10 × log₁₀P
+            - paragraph [ref=e113]:
+              - strong [ref=e114]: P = 10^(-Q/10)
+          - table [ref=e115]:
+            - rowgroup [ref=e116]:
+              - row "Phred Quality Score Probability of Error Base Call Accuracy" [ref=e117]:
+                - columnheader "Phred Quality Score" [ref=e118]
+                - columnheader "Probability of Error" [ref=e119]
+                - columnheader "Base Call Accuracy" [ref=e120]
+            - rowgroup [ref=e121]:
+              - row "10 1/10 90%" [ref=e122]:
+                - cell "10" [ref=e123]
+                - cell "1/10" [ref=e124]
+                - cell "90%" [ref=e125]
+              - row "20 1/100 99%" [ref=e126]:
+                - cell "20" [ref=e127]
+                - cell "1/100" [ref=e128]
+                - cell "99%" [ref=e129]
+              - row "30 1/1000 99.9%" [ref=e130]:
+                - cell "30" [ref=e131]
+                - cell "1/1000" [ref=e132]
+                - cell "99.9%" [ref=e133]
+              - row "40 1/10000 99.99%" [ref=e134]:
+                - cell "40" [ref=e135]
+                - cell "1/10000" [ref=e136]
+                - cell "99.99%" [ref=e137]
+              - row "50 1/100000 99.999%" [ref=e138]:
+                - cell "50" [ref=e139]
+                - cell "1/100000" [ref=e140]
+                - cell "99.999%" [ref=e141]
+          - heading "原始数据过滤说明" [level=3] [ref=e142]
+          - paragraph [ref=e143]: 测序得到的原始测序序列，里面含有带接头的、低质量的reads。为了保证信息分析质量，需要对raw reads进行精细过滤，得到clean reads，后续分析都基于clean reads进行。
+          - heading "数据处理步骤：" [level=3] [ref=e144]
+          - list [ref=e145]:
+            - listitem [ref=e146]: 去除长度小于50的reads对；
+            - listitem [ref=e147]: reads中N碱基的比例大于10%时，需要去除此对reads；
+            - listitem [ref=e148]: 去除Q20小于80%的reads对（Q20指reads的碱基质量分数大于等于20）。
+          - separator [ref=e149]
+          - heading "数据质控统计" [level=3] [ref=e150]
+          - table [ref=e152]:
+            - rowgroup [ref=e153]:
+              - row "Sample↕ total_reads↕ clean_reads↕ discard_reads↕ Q20↕ Q30↕ GC↕" [ref=e154]:
+                - columnheader "Sample↕" [ref=e155] [cursor=pointer]:
+                  - text: Sample
+                  - generic [ref=e156]: ↕
+                - columnheader "total_reads↕" [ref=e157] [cursor=pointer]:
+                  - text: total_reads
+                  - generic [ref=e158]: ↕
+                - columnheader "clean_reads↕" [ref=e159] [cursor=pointer]:
+                  - text: clean_reads
+                  - generic [ref=e160]: ↕
+                - columnheader "discard_reads↕" [ref=e161] [cursor=pointer]:
+                  - text: discard_reads
+                  - generic [ref=e162]: ↕
+                - columnheader "Q20↕" [ref=e163] [cursor=pointer]:
+                  - text: Q20
+                  - generic [ref=e164]: ↕
+                - columnheader "Q30↕" [ref=e165] [cursor=pointer]:
+                  - text: Q30
+                  - generic [ref=e166]: ↕
+                - columnheader "GC↕" [ref=e167] [cursor=pointer]:
+                  - text: GC
+                  - generic [ref=e168]: ↕
+            - rowgroup [ref=e169]:
+              - row "GK250830-01-LHJ2573_L8_1.fq 38051959 37917428 134531 0.9972131954730684 0.9825035683679108 0.3464176645455312" [ref=e170]:
+                - cell "GK250830-01-LHJ2573_L8_1.fq" [ref=e171]
+                - cell "38051959" [ref=e172]
+                - cell "37917428" [ref=e173]
+                - cell "134531" [ref=e174]
+                - cell "0.9972131954730684" [ref=e175]
+                - cell "0.9825035683679108" [ref=e176]
+                - cell "0.3464176645455312" [ref=e177]
+              - row "GK250830-01-LHJ2573_L8_2.fq 36914386 36829757 84629 0.9971108197464712 0.9811886044573505 0.4511642277013485" [ref=e178]:
+                - cell "GK250830-01-LHJ2573_L8_2.fq" [ref=e179]
+                - cell "36914386" [ref=e180]
+                - cell "36829757" [ref=e181]
+                - cell "84629" [ref=e182]
+                - cell "0.9971108197464712" [ref=e183]
+                - cell "0.9811886044573505" [ref=e184]
+                - cell "0.4511642277013485" [ref=e185]
+          - paragraph [ref=e186]:
+            - link "Clean Summary 数据概览" [ref=e187] [cursor=pointer]:
+              - /url: data\1. Clean_data\clean_summary.csv
+              - img [ref=e189]
+              - generic [ref=e191]: Clean Summary 数据概览
+          - generic [ref=e192]:
+            - strong [ref=e193]: 字段说明：
+            - text: Sample：样本名称；
+            - text: Raw reads：原始reads数；
+            - text: Clean reads：经过滤后的有效reads数；
+            - text: Effective rate(%)：过滤得到的clean data reads数占raw data reads数的比例；
+            - text: Q20(%)：测序质量值大于20的碱基占总碱基的比例；
+            - text: Q30(%)：测序质量值大于30的碱基占总碱基的比例；
+            - text: GC ratio(%)：GC碱基的总含量
+          - heading "原始数据质量分布图" [level=3] [ref=e194]
+          - paragraph [ref=e195]: 展示各样本原始测序数据的质量分布情况，包括碱基质量分布、GC含量分布等，用于评估测序数据的可靠性。
+          - generic [ref=e196]:
+            - generic [ref=e197]:
+              - generic [ref=e198]:
+                - generic [ref=e199]: 碱基质量与错误率
+                - generic [ref=e200]: 1张
+              - img "base_quality_and_error_rate.png" [ref=e205]
+            - generic [ref=e206]:
+              - generic [ref=e207]:
+                - generic [ref=e208]: 原始 Reads 分类
+                - generic [ref=e209]: 1张
+              - img "Raw reads classification.png" [ref=e214]
+      - generic [ref=e215]:
+        - separator [ref=e216]
+        - generic [ref=e217]:
+          - heading "3 Reads比对分析" [level=2] [ref=e218]:
+            - generic [ref=e219]: "3"
+            - text: Reads比对分析
+          - heading "Reads比对数据统计" [level=3] [ref=e220]
+          - paragraph [ref=e221]: 从reads中提取sgRNA序列，比对到sgRNA文库的参考序列，并对比对结果进行统计，包括完全匹配的reads数量，匹配到的sgRNA、基因数量和覆盖率、均一性等指标。根据这些指标可反映数据的可靠性和准确性。
+          - table [ref=e223]:
+            - rowgroup [ref=e224]:
+              - row "Reads↕ Mapped↕ NotMapped↕ NotFound↕ Percentage1↕ Total_sgrnas↕ Zero_sgrnas↕ Percentage2↕ Mean_depth↕ Median_depth↕ Max_depth↕ Total_genes↕ Zero_genes↕ skew_ratio↕" [ref=e225]:
+                - columnheader "Reads↕" [ref=e226] [cursor=pointer]:
+                  - text: Reads
+                  - generic [ref=e227]: ↕
+                - columnheader "Mapped↕" [ref=e228] [cursor=pointer]:
+                  - text: Mapped
+                  - generic [ref=e229]: ↕
+                - columnheader "NotMapped↕" [ref=e230] [cursor=pointer]:
+                  - text: NotMapped
+                  - generic [ref=e231]: ↕
+                - columnheader "NotFound↕" [ref=e232] [cursor=pointer]:
+                  - text: NotFound
+                  - generic [ref=e233]: ↕
+                - columnheader "Percentage1↕" [ref=e234] [cursor=pointer]:
+                  - text: Percentage1
+                  - generic [ref=e235]: ↕
+                - columnheader "Total_sgrnas↕" [ref=e236] [cursor=pointer]:
+                  - text: Total_sgrnas
+                  - generic [ref=e237]: ↕
+                - columnheader "Zero_sgrnas↕" [ref=e238] [cursor=pointer]:
+                  - text: Zero_sgrnas
+                  - generic [ref=e239]: ↕
+                - columnheader "Percentage2↕" [ref=e240] [cursor=pointer]:
+                  - text: Percentage2
+                  - generic [ref=e241]: ↕
+                - columnheader "Mean_depth↕" [ref=e242] [cursor=pointer]:
+                  - text: Mean_depth
+                  - generic [ref=e243]: ↕
+                - columnheader "Median_depth↕" [ref=e244] [cursor=pointer]:
+                  - text: Median_depth
+                  - generic [ref=e245]: ↕
+                - columnheader "Max_depth↕" [ref=e246] [cursor=pointer]:
+                  - text: Max_depth
+                  - generic [ref=e247]: ↕
+                - columnheader "Total_genes↕" [ref=e248] [cursor=pointer]:
+                  - text: Total_genes
+                  - generic [ref=e249]: ↕
+                - columnheader "Zero_genes↕" [ref=e250] [cursor=pointer]:
+                  - text: Zero_genes
+                  - generic [ref=e251]: ↕
+                - columnheader "skew_ratio↕" [ref=e252] [cursor=pointer]:
+                  - text: skew_ratio
+                  - generic [ref=e253]: ↕
+            - rowgroup [ref=e254]:
+              - row "37917428 27551149 4041073 6325206 72.7% 70296 953 1.4% 391.9305365881416 314.0 31737 70296 953 8.908045977011493" [ref=e255]:
+                - cell "37917428" [ref=e256]
+                - cell "27551149" [ref=e257]
+                - cell "4041073" [ref=e258]
+                - cell "6325206" [ref=e259]
+                - cell "72.7%" [ref=e260]
+                - cell "70296" [ref=e261]
+                - cell "953" [ref=e262]
+                - cell "1.4%" [ref=e263]
+                - cell "391.9305365881416" [ref=e264]
+                - cell "314.0" [ref=e265]
+                - cell "31737" [ref=e266]
+                - cell "70296" [ref=e267]
+                - cell "953" [ref=e268]
+                - cell "8.908045977011493" [ref=e269]
+          - paragraph [ref=e270]:
+            - link "比对信息统计表" [ref=e271] [cursor=pointer]:
+              - /url: data\2. Mapping\result.csv
+              - img [ref=e273]
+              - generic [ref=e275]: 比对信息统计表
+          - generic [ref=e276]:
+            - strong [ref=e277]: 字段说明：
+            - text: Reads：gRNA reads总数；
+            - text: Mapped：完全比对上gRNA Library的reads数目；
+            - text: Grna_mean_depth：gRNA平均测序的深度，即比对上参考序列的gRNA reads的总数目除以gRNA Library中被比对的gRNA数目；
+            - text: Max_Depth：gRNA最高测序深度，即gRNA Library中所有gRNA中比对上最多reads的gRNA的比对数目；
+            - text: Median_depth：gRNA测序深度的中位数；
+            - text: TotalsgRNAs：gRNA Library中的gRNA数目；
+            - text: Zerocounts：gRNA文库中丢失的gRNA数目；
+            - text: Coverage_rate：文库覆盖度，即测到的gRNA占总gRNA的比率，对于文库质控，一般要求覆盖度>90%；
+            - text: Totalgenes：gRNA library对应基因总数；
+            - text: Zerogenes：未能检测到的基因数目
+          - heading "sgRNA Counts 详细数据" [level=3] [ref=e278]
+          - paragraph [ref=e279]: 以下展示每条sgRNA的详细计数的完整数据。
+          - generic [ref=e280]:
+            - generic [ref=e281]:
+              - img [ref=e282]
+              - textbox "输入关键字搜索..." [ref=e284]
+            - button "多条件筛选" [ref=e285] [cursor=pointer]:
+              - img [ref=e286]
+              - text: 多条件筛选
+          - table [ref=e289]:
+            - rowgroup [ref=e290]:
+              - row "gene↕ uid↕ seq↕ counts↕" [ref=e291]:
+                - columnheader "gene↕" [ref=e292] [cursor=pointer]:
+                  - text: gene
+                  - generic [ref=e293]: ↕
+                - columnheader "uid↕" [ref=e294] [cursor=pointer]:
+                  - text: uid
+                  - generic [ref=e295]: ↕
+                - columnheader "seq↕" [ref=e296] [cursor=pointer]:
+                  - text: seq
+                  - generic [ref=e297]: ↕
+                - columnheader "counts↕" [ref=e298] [cursor=pointer]:
+                  - text: counts
+                  - generic [ref=e299]: ↕
+            - rowgroup [ref=e300]:
+              - row "HSM_00001 MARCH_1 ACACTTGTTTTCGGCTCCGC 289" [ref=e301]:
+                - cell "HSM_00001" [ref=e302]
+                - cell "MARCH_1" [ref=e303]
+                - cell "ACACTTGTTTTCGGCTCCGC" [ref=e304]
+                - cell "289" [ref=e305]
+              - row "HSM_00002 MARCH_1 CCGTACTCAGCGCTCTCCTT 271" [ref=e306]:
+                - cell "HSM_00002" [ref=e307]
+                - cell "MARCH_1" [ref=e308]
+                - cell "CCGTACTCAGCGCTCTCCTT" [ref=e309]
+                - cell "271" [ref=e310]
+              - row "HSM_00003 MARCH_1 CACAGGGCAGCCTTTGTCTT 323" [ref=e311]:
+                - cell "HSM_00003" [ref=e312]
+                - cell "MARCH_1" [ref=e313]
+                - cell "CACAGGGCAGCCTTTGTCTT" [ref=e314]
+                - cell "323" [ref=e315]
+              - row "HSM_00004 MARCH_1 GGAAGTATCTAGCAACCTAA 535" [ref=e316]:
+                - cell "HSM_00004" [ref=e317]
+                - cell "MARCH_1" [ref=e318]
+                - cell "GGAAGTATCTAGCAACCTAA" [ref=e319]
+                - cell "535" [ref=e320]
+              - row "HSM_00005 MARCH_1 TAAAGCACTATTATGTGACA 274" [ref=e321]:
+                - cell "HSM_00005" [ref=e322]
+                - cell "MARCH_1" [ref=e323]
+                - cell "TAAAGCACTATTATGTGACA" [ref=e324]
+                - cell "274" [ref=e325]
+              - row "HSM_00006 MARCH_1 AGTCTAATCAAACAGCCATT 1208" [ref=e326]:
+                - cell "HSM_00006" [ref=e327]
+                - cell "MARCH_1" [ref=e328]
+                - cell "AGTCTAATCAAACAGCCATT" [ref=e329]
+                - cell "1208" [ref=e330]
+              - row "HSM_00007 MARCH_1 GAGAGCTGGTAGGCCCTGCC 412" [ref=e331]:
+                - cell "HSM_00007" [ref=e332]
+                - cell "MARCH_1" [ref=e333]
+                - cell "GAGAGCTGGTAGGCCCTGCC" [ref=e334]
+                - cell "412" [ref=e335]
+              - row "HSM_00008 MARCH_1 GACACTGCACAGGCCAGGCA 159" [ref=e336]:
+                - cell "HSM_00008" [ref=e337]
+                - cell "MARCH_1" [ref=e338]
+                - cell "GACACTGCACAGGCCAGGCA" [ref=e339]
+                - cell "159" [ref=e340]
+              - row "HSM_00009 MARCH_1 CTCTCCACTATTCCCAGGAG 761" [ref=e341]:
+                - cell "HSM_00009" [ref=e342]
+                - cell "MARCH_1" [ref=e343]
+                - cell "CTCTCCACTATTCCCAGGAG" [ref=e344]
+                - cell "761" [ref=e345]
+              - row "HSM_00010 MARCH_2 GGAGGCCACAGGGACGACTT 623" [ref=e346]:
+                - cell "HSM_00010" [ref=e347]
+                - cell "MARCH_2" [ref=e348]
+                - cell "GGAGGCCACAGGGACGACTT" [ref=e349]
+                - cell "623" [ref=e350]
+          - paragraph [ref=e351]:
+            - link "sgRNA Counts 详细数据" [ref=e352] [cursor=pointer]:
+              - /url: data\2. Mapping\output.csv
+              - img [ref=e354]
+              - generic [ref=e356]: sgRNA Counts 详细数据
+          - generic [ref=e357]:
+            - generic [ref=e358]: 共 70296 行，显示 1-10 行
+            - generic [ref=e359]:
+              - generic: Prev
+              - generic: <
+              - generic [ref=e360]:
+                - generic [ref=e361]: "1"
+                - generic [ref=e362] [cursor=pointer]: "2"
+                - generic [ref=e363] [cursor=pointer]: "3"
+                - generic [ref=e364] [cursor=pointer]: "4"
+                - generic [ref=e365] [cursor=pointer]: "5"
+              - generic [ref=e366] [cursor=pointer]: ">"
+              - generic [ref=e367] [cursor=pointer]: Next
+          - generic [ref=e368]:
+            - strong [ref=e369]: 字段说明：
+            - text: gene：sgRNA对应的目标基因；
+            - text: uid：sgRNA的唯一标识符；
+            - text: seq：sgRNA的核酸序列；
+            - text: counts：比对到该sgRNA的reads数目
+      - generic [ref=e370]:
+        - separator [ref=e371]
+        - generic [ref=e372]:
+          - heading "4 图表展示" [level=2] [ref=e373]:
+            - generic [ref=e374]: "4"
+            - text: 图表展示
+          - paragraph [ref=e375]: 以下展示本次分析生成的各种图表。
+          - heading "测序深度分布" [level=3] [ref=e376]
+          - generic [ref=e378]:
+            - generic [ref=e379]:
+              - generic [ref=e380]: sgRNA Sequencing Depth
+              - generic [ref=e381]: 1张
+            - generic [ref=e383]:
+              - img "sgRNA_sequencing_depth.png" [ref=e386]
+              - paragraph [ref=e387]: 根据sgRNA文库中每条sgRNA比对到的reads数目，进行归纳统计，并将统计结果可视化，直观展示sgRNA的测序深度分布情况。
+          - heading "均一性分析" [level=3] [ref=e388]
+          - generic [ref=e390]:
+            - generic [ref=e391]:
+              - generic [ref=e392]: Uniformity Slope
+              - generic [ref=e393]: 1张
+            - generic [ref=e395]:
+              - img "uniformity_slope.png" [ref=e398]
+              - paragraph [ref=e399]: 文库均一性用skew ratio表示，是累积分布达到90%时对应的gRNA数目与累积分布达到10%时对应的gRNA数目的比值。文库的均一性评估在功能筛选上是非常重要的，可以有效避免sgRNA的缺失导致的筛选阳性靶点的遗漏以及假阳性结果。
+    - img [ref=e401] [cursor=pointer]

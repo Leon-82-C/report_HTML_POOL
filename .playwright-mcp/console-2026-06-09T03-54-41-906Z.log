@@ -1,0 +1,23 @@
+[     745ms] [WARNING] jQuery.Deferred exception: e.indexOf is not a function TypeError: e.indexOf is not a function
+    at w.fn.load (http://localhost:8766/js/jquery-3.3.1.min.js:2:82468)
+    at t.<computed>.<computed>._create (http://localhost:8766/js/jquery.tocify.min.js:4:951)
+    at t.<computed>.<computed>._create (http://localhost:8766/js/jquery-ui.min.js:6:4499)
+    at t.<computed>.<computed>._createWidget (http://localhost:8766/js/jquery-ui.min.js:6:6645)
+    at new t.<computed>.<computed> (http://localhost:8766/js/jquery-ui.min.js:6:4063)
+    at HTMLDivElement.<anonymous> (http://localhost:8766/js/jquery-ui.min.js:6:5877)
+    at w.each (http://localhost:8766/js/jquery-3.3.1.min.js:2:2573)
+    at w.fn.init.each (http://localhost:8766/js/jquery-3.3.1.min.js:2:1240)
+    at t.fn.<computed> [as tocify] (http://localhost:8766/js/jquery-ui.min.js:6:5787)
+    at HTMLDocument.<anonymous> (http://localhost:8766/report.html:448:29) undefined @ http://localhost:8766/js/jquery-3.3.1.min.js:1
+[     753ms] TypeError: e.indexOf is not a function
+    at w.fn.load (http://localhost:8766/js/jquery-3.3.1.min.js:2:82468)
+    at t.<computed>.<computed>._create (http://localhost:8766/js/jquery.tocify.min.js:4:951)
+    at t.<computed>.<computed>._create (http://localhost:8766/js/jquery-ui.min.js:6:4499)
+    at t.<computed>.<computed>._createWidget (http://localhost:8766/js/jquery-ui.min.js:6:6645)
+    at new t.<computed>.<computed> (http://localhost:8766/js/jquery-ui.min.js:6:4063)
+    at HTMLDivElement.<anonymous> (http://localhost:8766/js/jquery-ui.min.js:6:5877)
+    at w.each (http://localhost:8766/js/jquery-3.3.1.min.js:2:2573)
+    at w.fn.init.each (http://localhost:8766/js/jquery-3.3.1.min.js:2:1240)
+    at t.fn.<computed> [as tocify] (http://localhost:8766/js/jquery-ui.min.js:6:5787)
+    at HTMLDocument.<anonymous> (http://localhost:8766/report.html:448:29)
+[     755ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:8766/favicon.ico:0

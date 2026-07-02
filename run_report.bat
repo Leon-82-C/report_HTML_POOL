@@ -1,9 +1,5 @@
 @echo off
 chcp 65001 >nul
-echo ============================================
-echo   CRISPR Library Sequencing Report Generator
-echo ============================================
-echo.
 
 set "SCRIPT_DIR=%~dp0"
 set "DATA_DIR=%CD%"
@@ -16,10 +12,8 @@ if exist "GK*" (
 )
 
 :found_data
-echo Using data directory: %DATA_DIR%
-echo.
 
-REM Locate report_generator.py: SCRIPT_DIR first, then parent dir, then E:\work\report_HTML_POOL
+REM Locate report_generator.py
 set "PYTHON_SCRIPT="
 if exist "%SCRIPT_DIR%report_generator.py" (
     set "PYTHON_SCRIPT=%SCRIPT_DIR%report_generator.py"
@@ -40,22 +34,24 @@ if "%PYTHON_SCRIPT%"=="" (
     pause
     exit /b 1
 )
-echo Using script: %PYTHON_SCRIPT%
-echo.
 
-echo Enter protocol number (press Enter to skip):
+echo Enter sample name:
+set /p SAMPLE_INPUT=
+if "%SAMPLE_INPUT%"=="" (
+    set SAMPLE_ARG=
+) else (
+    set SAMPLE_ARG=--sample "%SAMPLE_INPUT%"
+)
+
+echo Enter protocol number:
 set /p PROTOCOL_INPUT=
 if "%PROTOCOL_INPUT%"=="" (
     set PROTOCOL_ARG=
-    echo Protocol number: (not provided)
 ) else (
     set PROTOCOL_ARG=--protocol "%PROTOCOL_INPUT%"
-    echo Protocol number: %PROTOCOL_INPUT%
 )
-echo.
 
-python "%PYTHON_SCRIPT%" "%DATA_DIR%" "report_output" %PROTOCOL_ARG%
+python "%PYTHON_SCRIPT%" "%DATA_DIR%" "report_output" %SAMPLE_ARG% %PROTOCOL_ARG%
 
 echo.
-echo Press any key to exit...
-pause >nul
+pause

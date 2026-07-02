@@ -24,7 +24,7 @@ except ImportError:
 class CRISPRReportGenerator:
     """CRISPR文库测序数据报告生成器"""
 
-    def __init__(self, data_dir, output_dir, project_name="sgRNA文库分析报告", project_id=None, protocol_number=""):
+    def __init__(self, data_dir, output_dir, project_name="sgRNA文库分析报告", project_id=None, protocol_number="", sample_name=""):
         self.data_dir = Path(data_dir)
         self.output_dir = Path(output_dir)
         self.project_name = project_name if project_name else "sgRNA文库分析报告"
@@ -33,6 +33,7 @@ class CRISPRReportGenerator:
         self.project_id = project_id or self._detect_project_id()
         self.report_date = datetime.now().strftime("%Y-%m-%d")
         self.protocol_number = protocol_number
+        self.sample_name = sample_name
 
         # 数据存储
         self.clean_summary = None
@@ -860,7 +861,7 @@ class CRISPRReportGenerator:
         html += self._generate_section('quality-control', '2 数据质控', self._generate_qc_section())
 
         # 3. Reads比对
-        html += self._generate_section('mapping', '3 Reads比对分析', self._generate_mapping_section())
+        html += self._generate_section('mapping', '3 统计分析', self._generate_mapping_section())
 
         # 4. 图表展示
         if images_by_type:
@@ -931,12 +932,12 @@ class CRISPRReportGenerator:
 
         <h3>gRNA文库应用</h3>
         <p class="para-no-indent">
-            gRNA文库是药物筛选或靶向筛选特定通路的理想工具，gRNA文库的建立将在功能基因筛选、疾病机制研究及药物研发等方面发挥重要的功能。gRNA文库包括全基因组文库、lncRNA文库、信号通路、细胞凋亡、细胞增殖、离子通道、核受体相关、各种疾病相关等文库。
+            gRNA文库是药物筛选或靶向筛选特定通路的理想工具，gRNA文库的建立将在功能基因筛选、疾病机制研究及药物研发等方面发挥重要的功能。gRNA文库包括全基因组文库、IncRNA文库、信号通路、细胞凋亡、细胞增殖、离子通道、核受体相关、各种疾病相关等文库。全基因组gRNA文库的构建可以针对任何类型的基因组DNA，包括ORF cDNA，IncRNA cDNA以及特定区域的cDNA片段等。能够针对全长cDNA乃至基因组DNA构建高效的RNA文库，适用于高通量功能基因及相关药物靶点筛选。
         </p>
 
         <h3>实验流程</h3>
 
-        <h4 style="color: #da1e33;">1.1 文库制备</h4>
+        <h4 class="subtitle-red">1.1 文库制备</h4>
         <p class="para-no-indent">
             DNA样品经DNA片段化(Shear)、末端补平(End repair)、片段3端加A尾(Add 3\'A Tail)、连接接头(Ligate Adapters)、片段筛选(Clean)、PCR扩增(Enrich with PCR)、片段筛选(Clean)、PCR产物质检(QC)等步骤构建形成Illumina平台高通量测序文库。
         </p>
@@ -944,24 +945,41 @@ class CRISPRReportGenerator:
             <img src="images/flute.png" alt="文库制备流程图" style="max-height: 500px;">
         </div>
 
-        <h4 style="color: #da1e33;">1.2 测序</h4>
+        <h4 class="subtitle-red">1.2 测序</h4>
         <p class="para-no-indent">
-            Illumina平台上机测序，采用双端150bp测序模式。fastq是测序数据下机格式，其中包含测序序列(reads)的序列信息，及其对应的测序质量信息。fastq格式文件中每个read由四行描述，如下：
+            Illumina平台上机测序。fastq是测序数据下机格式，其中包含测序序列(reads)的序列信息，及其对应的测序质量信息。fastq格式文件中每个read由四行描述，如下：
         </p>
 
-        <h4 style="color: #da1e33;">1.3 数据分析</h4>
-        <p class="para-no-indent">
-            本报告使用MAGeCKFlute进行CRISPR文库筛选数据的分析。MAGeCKFlute是一个综合性的CRISPR筛选数据分析工具，整合了MAGeCK和MAGeCKFlute的功能，能够进行sgRNA级别的质量控制、基因水平的阳性/阴性筛选、以及下游富集分析。
-        </p>
+        <div class="rounded-info-box">
+            <div style="margin: 15px 0; text-align: center;">
+                <img src="images/fastq.png" alt="测序数据图" style="max-height: 380px;">
+            </div>
+            <p class="para-no-indent" style="margin-top: 10px;">
+            <strong>第一行</strong>以"@"开头，后面是这个read的基本信息，分为两部分：ID部分和可选的描述部分，中间用空格分开，ID部分是每条read的唯一标识，它包含多个字段，每个字段之间用冒号分隔；描述区域是可选的，用来保存一些自定义的信息，如测序时用到的引物序列信息等。
+            </p>
+            <p class="para-no-indent" style="margin-top: 8px;">
+            <strong>第二行</strong>是碱基序列(分ATCGN5种情况，N代表不确定碱基类型)。
+            </p>
+            <p class="para-no-indent" style="margin-top: 8px;">
+            <strong>第三行</strong>用于将测序序列和质量值内容分离开来，以'+'开头，后面可添加第一行的描述信息。
+            </p>
+            <p class="para-no-indent" style="margin-top: 8px;">
+            <strong>第四行</strong>为对应碱基序列的测序质量(以ASCII码形式储存，与第二行的碱基序列一一对应)。
+            </p>
+        </div>
 
-        <h4>1.3.1 测序数据质控</h4>
+        <h4 class="subtitle-red">1.3 数据分析</h4>
+
+        <div class="sub-content-block">
+        <h4 class="subtitle-black">1.3.1 测序数据质控</h4>
         <p class="para-no-indent">对原始测序数据进行质量控制（QC），去除低质量 Reads 和接头污染序列，获得 Clean Reads 用于后续分析。</p>
 
-        <h4>1.3.2 Reads 比对</h4>
+        <h4 class="subtitle-black">1.3.2 Reads 比对</h4>
         <p class="para-no-indent">将 Clean Reads 与 sgRNA 文库参考序列进行比对，提取并统计各 sgRNA 的 Reads 数目。</p>
 
-        <h4>1.3.3 统计分析</h4>
+        <h4 class="subtitle-black">1.3.3 统计分析</h4>
         <p class="para-no-indent">对比对结果进行统计分析，包括比对上的 Reads 数量、覆盖的 sgRNA 和基因数目、覆盖率及Reads 均一性等质控指标。</p>
+        </div>
 
 '''
 
@@ -977,7 +995,7 @@ class CRISPRReportGenerator:
             <li>随着测序的进行，错误率会升高，测序质量降低，这是由于测试过程中荧光基团的不完全切割和de-phasing引起荧光信号衰减。</li>
         </ul>
 
-        <h4 style="border-left: 4px solid #da1e33; padding-left: 10px; color: #222;">质量分数与错误率换算关系</h4>
+        <h4 style="color: #222; text-indent: 0;">质量分数与错误率换算关系</h4>
         <p class="para-no-indent">
             如果碱基的质量分数用Q表示，识别错误率用P表示，则碱基的质量分数和错误率能用以下公式表示：
         </p>
@@ -1022,14 +1040,48 @@ class CRISPRReportGenerator:
         if self.clean_summary is not None:
             html += '<h3>数据质控统计</h3>'
 
-            # Q20/Q30/GC 等数值列保留两位小数
+            # 整数列转为 int（total_reads、clean_reads、discard_reads 等）
             for col in self.clean_summary.columns:
                 col_lower = col.lower()
-                if any(k in col_lower for k in ('q20', 'q30', 'gc', 'rate', 'effective')):
+                if any(k in col_lower for k in ('reads',)):
+                    try:
+                        self.clean_summary[col] = pd.to_numeric(self.clean_summary[col], errors='coerce').astype('Int64')
+                    except Exception:
+                        pass
+
+            # 计算 Effective_Rate(%) = clean_reads / total_reads * 100，放在 discard_reads 右边
+            if 'total_reads' in self.clean_summary.columns and 'clean_reads' in self.clean_summary.columns:
+                total = pd.to_numeric(self.clean_summary['total_reads'], errors='coerce')
+                clean = pd.to_numeric(self.clean_summary['clean_reads'], errors='coerce')
+                self.clean_summary['Effective_Rate(%)'] = (clean / total * 100).round(2)
+                cols = list(self.clean_summary.columns)
+                cols.remove('Effective_Rate(%)')
+                pos = cols.index('discard_reads')
+                cols.insert(pos + 1, 'Effective_Rate(%)')
+                self.clean_summary = self.clean_summary[cols]
+
+            # Q20/Q30/GC 数值列：去掉%后转数值并×100转为百分比，列名加(%)后缀
+            pct_rename = {}
+            for col in self.clean_summary.columns:
+                col_lower = col.lower()
+                if any(k in col_lower for k in ('q20', 'q30', 'gc')):
+                    try:
+                        raw = self.clean_summary[col].astype(str).str.replace('%', '', regex=False)
+                        self.clean_summary[col] = (pd.to_numeric(raw, errors='coerce') * 100).round(2)
+                        pct_rename[col] = f'{col}(%)'
+                    except Exception:
+                        pass
+                elif any(k in col_lower for k in ('rate', 'effective')):
                     try:
                         self.clean_summary[col] = pd.to_numeric(self.clean_summary[col], errors='coerce').round(2)
                     except Exception:
                         pass
+            if pct_rename:
+                self.clean_summary = self.clean_summary.rename(columns=pct_rename)
+
+            # 如果用户指定了样本名称，覆盖 Sample 列
+            if self.sample_name and 'Sample' in self.clean_summary.columns:
+                self.clean_summary['Sample'] = self.sample_name
 
             # 获取CSV相对路径
             rel_path = None
@@ -1040,20 +1092,21 @@ class CRISPRReportGenerator:
                         break
                 if rel_path:
                     break
-            
+
             html += self.generate_table_html(self.clean_summary.head(1), "Clean Summary 数据概览",
                                             relative_path=rel_path)
-            
+
             html += '''
             <div class="plain-field-desc">
                 <strong>字段说明：</strong><br>
                 Sample：样本名称；<br>
-                Raw reads：原始reads数；<br>
-                Clean reads：经过滤后的有效reads数；<br>
-                Effective rate(%)：过滤得到的clean data reads数占raw data reads数的比例；<br>
-                Q20(%)：测序质量值大于20的碱基占总碱基的比例；<br>
-                Q30(%)：测序质量值大于30的碱基占总碱基的比例；<br>
-                GC ratio(%)：GC碱基的总含量
+                total_reads：原始reads数；<br>
+                clean_reads：经过滤后的有效reads数；<br>
+                discard_reads：过滤丢弃的reads数；<br>
+                Effective_Rate(%)：过滤得到的clean reads数占raw reads数的比例；<br>
+                Q20(%)：测序质量值大于20的碱基占总碱基的百分比；<br>
+                Q30(%)：测序质量值大于30的碱基占总碱基的百分比；<br>
+                GC(%)：GC碱基占总碱基的百分比
             </div>
 '''
         
@@ -1075,6 +1128,20 @@ class CRISPRReportGenerator:
         html = ''
         
         if self.mapping_result is not None:
+            # 整数列转为 int（Reads、Mapped、NotMapped、NotFound、Total/Zero sgrnas/genes 等）
+            int_like_cols = []
+            for col in self.mapping_result.columns:
+                col_lower = col.lower()
+                if any(k in col_lower for k in ('reads', 'mapped', 'notmapped', 'notfound',
+                                                  'total_sgrnas', 'zero_sgrnas',
+                                                  'total_genes', 'zero_genes')):
+                    int_like_cols.append(col)
+            for col in int_like_cols:
+                try:
+                    self.mapping_result[col] = pd.to_numeric(self.mapping_result[col], errors='coerce').astype('Int64')
+                except Exception:
+                    pass
+
             # Mean_depth / Median_depth / Max_depth / skew_ratio 保留两位小数
             for col in self.mapping_result.columns:
                 col_lower = col.lower()
@@ -1083,6 +1150,40 @@ class CRISPRReportGenerator:
                         self.mapping_result[col] = pd.to_numeric(self.mapping_result[col], errors='coerce').round(2)
                     except Exception:
                         pass
+
+            # 重命名 Percentage1；Percentage2 计算为 Coverage Rate (%)
+            rename_map = {}
+            for old_col, new_col in [('Percentage1', 'Mapping_Rate(%)')]:
+                if old_col in self.mapping_result.columns:
+                    try:
+                        raw = self.mapping_result[old_col].astype(str).str.replace('%', '', regex=False)
+                        self.mapping_result[old_col] = pd.to_numeric(raw, errors='coerce').round(2)
+                        rename_map[old_col] = new_col
+                    except Exception:
+                        pass
+            # Coverage Rate (%) = 1 - Percentage2
+            if 'Percentage2' in self.mapping_result.columns:
+                try:
+                    raw = self.mapping_result['Percentage2'].astype(str).str.replace('%', '', regex=False)
+                    p2 = pd.to_numeric(raw, errors='coerce')
+                    # 如果值 > 1 则视为百分数，否则视为小数比例
+                    if p2.max() > 1:
+                        self.mapping_result['Coverage Rate (%)'] = (100 - p2).round(2)
+                    else:
+                        self.mapping_result['Coverage Rate (%)'] = ((1 - p2) * 100).round(2)
+                    self.mapping_result = self.mapping_result.drop(columns=['Percentage2'])
+                except Exception:
+                    pass
+            if rename_map:
+                self.mapping_result = self.mapping_result.rename(columns=rename_map)
+
+            # Coverage Rate (%) 放到 Zero_sgrnas 右边
+            if 'Coverage Rate (%)' in self.mapping_result.columns and 'Zero_sgrnas' in self.mapping_result.columns:
+                cols = list(self.mapping_result.columns)
+                cols.remove('Coverage Rate (%)')
+                pos = cols.index('Zero_sgrnas')
+                cols.insert(pos + 1, 'Coverage Rate (%)')
+                self.mapping_result = self.mapping_result[cols]
 
             # 获取CSV相对路径
             rel_path = None
@@ -1093,9 +1194,9 @@ class CRISPRReportGenerator:
                         break
                 if rel_path:
                     break
-            
+
             html += '''
-        <h3>Reads比对数据统计</h3>
+        <h3>样本 Reads 统计</h3>
         <p class="para-no-indent">
             从reads中提取sgRNA序列，比对到sgRNA文库的参考序列，并对比对结果进行统计，包括完全匹配的reads数量，匹配到的sgRNA、基因数量和覆盖率、均一性等指标。根据这些指标可反映数据的可靠性和准确性。
         </p>
@@ -1108,14 +1209,18 @@ class CRISPRReportGenerator:
                 <strong>字段说明：</strong><br>
                 Reads：gRNA reads总数；<br>
                 Mapped：完全比对上gRNA Library的reads数目；<br>
-                Grna_mean_depth：gRNA平均测序的深度，即比对上参考序列的gRNA reads的总数目除以gRNA Library中被比对的gRNA数目；<br>
-                Max_Depth：gRNA最高测序深度，即gRNA Library中所有gRNA中比对上最多reads的gRNA的比对数目；<br>
+                NotMapped：未能比对上参考序列的reads数目；<br>
+                NotFound：在文库中未找到的reads数目；<br>
+                Mapping_Rate(%)：比对率（Mapped reads占总reads的比例）；<br>
+                Total_sgrnas：gRNA Library中的gRNA数目；<br>
+                Zero_sgrnas：gRNA文库中丢失的gRNA数目；<br>
+                Coverage Rate (%)：文库覆盖度，即检测到的 gRNA 占总 gRNA 的百分比；<br>
+                Mean_depth：gRNA平均测序深度，即比对上参考序列的gRNA reads的总数目除以gRNA Library中被比对的gRNA数目；<br>
                 Median_depth：gRNA测序深度的中位数；<br>
-                TotalsgRNAs：gRNA Library中的gRNA数目；<br>
-                Zerocounts：gRNA文库中丢失的gRNA数目；<br>
-                Coverage_rate：文库覆盖度，即测到的gRNA占总gRNA的比率，对于文库质控，一般要求覆盖度>90%；<br>
-                Totalgenes：gRNA library对应基因总数；<br>
-                Zerogenes：未能检测到的基因数目
+                Max_depth：gRNA最高测序深度，即gRNA Library中所有gRNA中比对上最多reads的gRNA的比对数目；<br>
+                Total_genes：gRNA library对应基因总数；<br>
+                Zero_genes：未能检测到的基因数目；<br>
+                skew_ratio：文库均一性比例，累积分布达90%与10%时对应gRNA数目的比值
         </div>
 '''
 
@@ -1498,6 +1603,8 @@ h2.section-title-modern .num-box {
     font-weight: bold;
 }
 .report-section h4 { color: #000; font-size: 15px; margin: 15px 0 10px 0; font-weight: bold; }
+.report-section h5 { color: #333; font-size: 14px; margin: 12px 0 8px 0; font-weight: bold; }
+.report-section .section-sub-indent { margin-left: 20px; }
 
 /* ========== 段落样式 ========== */
 .paragraph { text-indent: 2em; line-height: 1.8; margin: 10px 0; }
@@ -1523,9 +1630,20 @@ h2.section-title-modern .num-box {
     margin: 25px 0 15px 0;
 }
 /* 红色副标题 */
-.subtitle-red { color: #da1e33; font-size: 16px; margin: 20px 0 10px 0; }
+.subtitle-red,
+h4.subtitle-red {
+    color: #da1e33;
+    font-size: 16px;
+    margin: 20px 0 10px 0;
+    padding-left: 10px;
+    border-left: 3px solid #da1e33;
+    font-weight: bold;
+    text-indent: 0;
+}
 /* 黑色副标题 */
-.subtitle-black { color: #000; font-size: 15px; font-weight: bold; margin: 15px 0 10px 0; }
+.subtitle-black { color: #000; font-size: 15px; font-weight: bold; margin: 15px 0 10px 0; text-indent: 0; }
+/* 缩进内容块 */
+.sub-content-block { padding-left: 2em; }
 
 /* 圆角信息框 */
 .rounded-info-box {
@@ -2252,6 +2370,7 @@ def main():
     parser.add_argument('--name', default=None, help='项目名称')
     parser.add_argument('--project-id', default=None, help='项目编号')
     parser.add_argument('--protocol', default='', help='协议编号')
+    parser.add_argument('--sample', default='', help='样本名称（覆盖数据质控统计中Sample列）')
 
     args = parser.parse_args()
 
@@ -2260,7 +2379,8 @@ def main():
         output_dir=args.output_dir,
         project_name=args.name,
         project_id=args.project_id,
-        protocol_number=args.protocol
+        protocol_number=args.protocol,
+        sample_name=args.sample
     )
 
     print("=" * 60)

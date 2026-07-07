@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-CRISPR文库测序数据报告生成器
-集成自参考脚本的高级功能，支持多条件筛选、搜索排序等交互功能
+CRISPR Library Sequencing Data Report Generator (English)
+Integrated advanced features from reference scripts: multi-condition filtering, search, sort, etc.
 """
 
 import os
@@ -17,25 +17,24 @@ import html as html_module
 try:
     import pandas as pd
 except ImportError:
-    print("警告: 未安装pandas库，将使用简化模式处理CSV文件")
+    print("Warning: pandas not installed. Will use simplified mode for CSV processing.")
     pd = None
 
 
-class CRISPRReportGenerator:
-    """CRISPR文库测序数据报告生成器"""
+class CRISPRReportGeneratorEN:
+    """CRISPR Library Sequencing Data Report Generator (English)"""
 
-    def __init__(self, data_dir, output_dir, project_name="sgRNA文库分析报告", project_id=None, protocol_number="", sample_name=""):
+    def __init__(self, data_dir, output_dir, project_name="sgRNA Library Analysis Report",
+                 project_id=None, protocol_number="", sample_name=""):
         self.data_dir = Path(data_dir)
         self.output_dir = Path(output_dir)
-        self.project_name = project_name if project_name else "sgRNA文库分析报告"
-        # 报告主标题（与项目名称区分：名称可为样本编号等）
+        self.project_name = project_name if project_name else "sgRNA Library Analysis Report"
         self.report_title = ""
         self.project_id = project_id or self._detect_project_id()
         self.report_date = datetime.now().strftime("%Y-%m-%d")
         self.protocol_number = protocol_number
         self.sample_name = sample_name
 
-        # 数据存储
         self.clean_summary = None
         self.mapping_result = None
         self.sgrna_counts = None
@@ -43,11 +42,10 @@ class CRISPRReportGenerator:
         self.image_files = {}
         self.all_images = []
 
-        # 加载封面资源
         self._load_cover_resources()
 
     def _detect_project_id(self):
-        """从数据文件名中自动检测项目ID"""
+        """Auto-detect project ID from data filenames"""
         clean_files = list(self.data_dir.glob('**/*clean*.csv'))
         for f in clean_files:
             try:
@@ -72,14 +70,14 @@ class CRISPRReportGenerator:
         return self.data_dir.name
 
     def _load_cover_resources(self):
-        """加载封面资源（logo、背景图）"""
+        """Load cover resources (logo, background)"""
         self.logo_base64 = ''
         self.bg_base64 = ''
         self.bg_mime = 'image/png'
 
         script_dir = Path(__file__).parent if '__file__' in globals() else self.data_dir
 
-        for logo_name in ['logo.png', 'logo.jpg', 'logo.jpeg']:
+        for logo_name in ['logo_en.png', 'logo.png', 'logo.jpg', 'logo.jpeg']:
             logo_path = script_dir / logo_name
             if logo_path.exists():
                 self.logo_base64 = self._get_base64(logo_path)
@@ -94,29 +92,29 @@ class CRISPRReportGenerator:
                 break
 
     def _get_base64(self, filepath):
-        """将图片文件转换为base64编码"""
+        """Convert image file to base64 encoding"""
         try:
             with open(filepath, 'rb') as f:
                 return base64.b64encode(f.read()).decode('utf-8')
         except Exception as e:
-            print(f"警告: 读取图片失败 {filepath}: {e}")
+            print(f"Warning: Failed to read image {filepath}: {e}")
             return ''
 
     def scan_files(self):
-        """扫描数据目录，收集所有文件"""
-        print(f"正在扫描目录: {self.data_dir}")
-        
+        """Scan data directory and collect all files"""
+        print(f"Scanning directory: {self.data_dir}")
+
         exclude_dirs = ['参考报告形式', 'reference', 'ref', 'report_output', '__pycache__']
-        
+
         for root, dirs, files in os.walk(self.data_dir):
             dirs[:] = [d for d in dirs if d not in exclude_dirs]
-            
+
             rel_path = Path(root).relative_to(self.data_dir)
-            
+
             for file in files:
                 file_path = Path(root) / file
                 ext = file_path.suffix.lower()
-                
+
                 if ext == '.csv':
                     if str(rel_path) not in self.data_files:
                         self.data_files[str(rel_path)] = []
@@ -132,56 +130,52 @@ class CRISPRReportGenerator:
                         'name': file,
                         'path': str(file_path)
                     })
-        
+
         csv_count = len(sum(self.data_files.values(), []))
         img_count = len(sum(self.image_files.values(), []))
-        print(f"找到 {csv_count} 个CSV文件")
-        print(f"找到 {img_count} 个图片文件")
-        
-        # 加载主要数据
+        print(f"Found {csv_count} CSV file(s)")
+        print(f"Found {img_count} image file(s)")
+
         self._load_main_data()
 
     def _load_main_data(self):
-        """加载主要数据文件"""
-        # 读取clean_summary.csv
+        """Load main data files"""
         for rel_path, files in self.data_files.items():
             for f in files:
                 if 'clean' in f['name'].lower() and f['name'].endswith('.csv'):
                     self.clean_summary = self._read_csv(f['path'])
                     if self.clean_summary is not None:
-                        print(f"  已加载: {f['name']}")
+                        print(f"  Loaded: {f['name']}")
                     break
-        
-        # 读取result.csv
+
         for rel_path, files in self.data_files.items():
             for f in files:
                 if f['name'] == 'result.csv':
                     self.mapping_result = self._read_csv(f['path'])
                     if self.mapping_result is not None:
-                        print(f"  已加载: {f['name']}")
+                        print(f"  Loaded: {f['name']}")
                     break
-        
-        # 读取output.csv
+
         for rel_path, files in self.data_files.items():
             for f in files:
                 if f['name'] == 'output.csv':
                     self.sgrna_counts = self._read_csv(f['path'])
                     if self.sgrna_counts is not None:
-                        print(f"  已加载: {f['name']}")
+                        print(f"  Loaded: {f['name']}")
                     break
 
     def _read_csv(self, filepath):
-        """读取CSV文件"""
+        """Read CSV file"""
         if pd is None:
             return None
         try:
             return pd.read_csv(filepath)
         except Exception as e:
-            print(f"读取CSV失败 {filepath}: {e}")
+            print(f"Failed to read CSV {filepath}: {e}")
             return None
 
     def get_csv_relative_path(self, csv_path):
-        """获取CSV文件复制到输出目录后的相对路径"""
+        """Get the relative path of a copied CSV file in the output directory"""
         csv_path = str(csv_path)
         for rel_path, files in self.data_files.items():
             for f in files:
@@ -190,8 +184,8 @@ class CRISPRReportGenerator:
         return None
 
     def copy_resources(self):
-        """复制数据文件和图片到输出目录"""
-        print("\n正在复制资源文件...")
+        """Copy data files and images to output directory"""
+        print("\nCopying resource files...")
 
         data_dir = self.output_dir / 'data'
         images_dir = self.output_dir / 'images'
@@ -201,7 +195,6 @@ class CRISPRReportGenerator:
         for d in [data_dir, images_dir, css_dir, js_dir]:
             d.mkdir(parents=True, exist_ok=True)
 
-        # 复制CSV文件
         for rel_path, files in self.data_files.items():
             target_dir = data_dir / rel_path
             target_dir.mkdir(parents=True, exist_ok=True)
@@ -211,11 +204,10 @@ class CRISPRReportGenerator:
                 try:
                     shutil.copy2(src, dst)
                     f['output_path'] = str(Path('data') / rel_path / src.name)
-                    print(f"  复制: {src.name}")
+                    print(f"  Copied: {src.name}")
                 except Exception as e:
-                    print(f"  复制失败 {src}: {e}")
+                    print(f"  Copy failed {src}: {e}")
 
-        # 复制图片文件
         for rel_path, images in self.image_files.items():
             target_dir = images_dir / rel_path
             target_dir.mkdir(parents=True, exist_ok=True)
@@ -225,47 +217,38 @@ class CRISPRReportGenerator:
                 try:
                     shutil.copy2(src, dst)
                     img['output_path'] = str(Path('images') / rel_path / src.name)
-                    print(f"  复制: {src.name}")
+                    print(f"  Copied: {src.name}")
                 except Exception as e:
-                    print(f"  复制失败 {src}: {e}")
-        
-        # 复制固定的报告图片 (flute.png, fastq.png)
-        self._copy_static_images()
+                    print(f"  Copy failed {src}: {e}")
 
-        # 生成CSS和JS文件
+        self._copy_static_images()
         self._write_css(css_dir)
         self._write_js(js_dir)
-
-        # 复制库文件
         self._copy_library_files(js_dir, css_dir)
 
-        print("资源文件复制完成")
+        print("Resource files copied successfully.")
 
     def _copy_library_files(self, js_dir, css_dir):
-        """复制前端库文件（对齐参考脚本：bootstrap-4.3.1.min.css 重命名为 bootstrap.min.css）"""
+        """Copy front-end library files (bootstrap-4.3.1.min.css renamed to bootstrap.min.css)"""
         script_dir = Path(__file__).parent if '__file__' in globals() else self.data_dir
         resources_dir = script_dir / 'resources'
 
         if not resources_dir.exists():
-            print("警告: 未找到resources文件夹")
+            print("Warning: resources folder not found.")
             return
 
-        # CSS: bootstrap-4.3.1.min.css → bootstrap.min.css，其余保持原名
-        # 排除 style.css / base.css / gallery.css（由 _write_css 生成，resources 中为旧版）
         for css_file in resources_dir.glob('css/*.css'):
             if css_file.name in ('style.css', 'base.css', 'gallery.css'):
                 continue
             dst_name = 'bootstrap.min.css' if css_file.name == 'bootstrap-4.3.1.min.css' else css_file.name
             shutil.copy2(css_file, css_dir / dst_name)
 
-        # JS: bootstrap-4.3.1.min.js → bootstrap.min.js，其余保持原名
         for js_file in resources_dir.glob('js/*.js'):
             if js_file.name in ('common.js', 'scrolltop.js'):
                 continue
             dst_name = 'bootstrap.min.js' if js_file.name == 'bootstrap-4.3.1.min.js' else js_file.name
             shutil.copy2(js_file, js_dir / dst_name)
 
-        # fancybox 资源目录
         fancybox_src = resources_dir / 'js' / 'fancybox'
         if fancybox_src.exists():
             fancybox_dst = js_dir / 'fancybox'
@@ -273,12 +256,12 @@ class CRISPRReportGenerator:
             for fb_file in fancybox_src.glob('*'):
                 if fb_file.is_file():
                     shutil.copy2(fb_file, fancybox_dst / fb_file.name)
-    
+
     def _copy_static_images(self):
-        """复制固定的报告图片 (flute.png, fastq.png)"""
+        """Copy static report images (flute.png, fastq.png)"""
         static_images = ['flute.png', 'fastq.png']
         script_dir = Path(__file__).parent if '__file__' in globals() else self.data_dir
-        
+
         for img_name in static_images:
             src = script_dir / img_name
             if src.exists():
@@ -286,23 +269,23 @@ class CRISPRReportGenerator:
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 try:
                     shutil.copy2(src, dst)
-                    print(f"  复制: {img_name}")
+                    print(f"  Copied: {img_name}")
                 except Exception as e:
-                    print(f"  复制静态图片失败 {img_name}: {e}")
+                    print(f"  Failed to copy static image {img_name}: {e}")
 
     def _write_css(self, css_dir):
-        """生成CSS样式文件"""
+        """Generate CSS style files"""
         with open(css_dir / 'style.css', 'w', encoding='utf-8') as f:
             f.write(self._get_style_css())
-        
+
         with open(css_dir / 'base.css', 'w', encoding='utf-8') as f:
             f.write(self._get_base_css())
-        
+
         with open(css_dir / 'gallery.css', 'w', encoding='utf-8') as f:
             f.write(self._get_gallery_css())
 
     def _write_js(self, js_dir):
-        """生成JavaScript文件"""
+        """Generate JavaScript files"""
         with open(js_dir / 'common.js', 'w', encoding='utf-8') as f:
             f.write(self._get_common_js())
 
@@ -310,58 +293,52 @@ class CRISPRReportGenerator:
             f.write(self._get_scrolltop_js())
 
     def generate_report(self):
-        """生成完整HTML报告"""
-        print("\n正在生成HTML报告...")
+        """Generate the complete HTML report"""
+        print("\nGenerating HTML report...")
         html = self._generate_html()
         output_file = self.output_dir / 'report.html'
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(html)
-        print(f"报告生成完成: {output_file}")
+        print(f"Report generated: {output_file}")
         return output_file
 
-    def generate_table_html(self, df, caption="数据表格", max_rows=10, relative_path=None, 
+    def generate_table_html(self, df, caption="Data Table", max_rows=10, relative_path=None,
                            enable_search=False, enable_filter=False, fixed_column_width=False):
-        """生成表格HTML（带分页和多条件组合筛选弹窗）"""
+        """Generate table HTML with pagination and multi-condition filter modal"""
         if df is None or df.empty:
-            return '<p>暂无数据</p>'
-        
+            return '<p>No data available.</p>'
+
         table_id = f"table_{hash(caption) % 100000}"
         total_rows = len(df)
         total_pages = (total_rows + max_rows - 1) // max_rows
         columns = list(df.columns)
-        
-        # 生成表头
+
         first_col_width = '40ch'
         remaining_cols = len(columns) - 1
         other_col_width = f'calc((100% - {first_col_width}) / {remaining_cols})' if remaining_cols > 0 else 'auto'
-        
-        # 生成表头（始终带排序功能，视觉统一用 gy 样式对齐参考脚本）
+
         headers = ''.join([
             f'<th onclick="sortTableByColumn(\'{table_id}\', {i})" style="cursor:pointer">{col}<span class="sort-indicator"></span></th>'
             for i, col in enumerate(columns)
         ])
         table_classes = 'gy table table-striped table-bordered'
-        
-        # 生成数据行
+
         rows = ''
         for idx, row in df.head(max_rows).iterrows():
             cells = ''.join([f'<td>{val}</td>' for val in row])
             rows += f'<tr>{cells}</tr>'
-        
-        # SVG图标
+
         search_svg = '<svg viewBox="0 0 1024 1024"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.6-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM412 640c-125.9 0-228-102.1-228-228S286.1 184 412 184s228 102.1 228 228-102.1 228-228 228z"/></svg>'
         filter_svg = '<svg viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.7s-1.6-38.8-4.7-57.7l65.5-56a32.03 32.03 0 009.3-35.2l-54.7-110.6a32.12 32.12 0 00-29.2-18l-1.3.1-85.3 15.6c-24.3-19.1-51.2-35.1-80-47.3L669 116.6A32 32 0 00640.4 96H531c-14.3 0-26.8 9.5-31 23.3L485.4 206c-28.8 12.2-55.7 28.2-80 47.3l-85.3-15.6-1.3-.1a32.09 32.09 0 00-29.2 18L235 366.2a32.03 32.03 0 009.3 35.2l65.5 56c-3.1 19-4.7 38.4-4.7 57.7s1.6 38.8 4.7 57.7l-65.5 56a32.03 32.03 0 00-9.3 35.2l54.7 110.6c7.3 14.8 24.3 21.6 40 15.9l80.2-15c24.3 19.1 51.2 35.1 80 47.3l14.6 86.6c4.2 13.8 16.7 23.3 31 23.3h109.4c14.3 0 26.8-9.5 31-23.3l14.6-86.6c28.8-12.2 55.7-28.2 80-47.3l80.2 15.1c15.6 5.6 32.7-1 40-15.9l54.7-110.6a32.03 32.03 0 00-9.3-35.2zM585.6 631c-65.8 65.8-172.5 65.8-238.3 0-65.8-65.8-65.8-172.5 0-238.3 65.8-65.8 172.5-65.8 238.3 0 65.8 65.8 65.8 172.5 0 238.3z"/></svg>'
-        
-        # 搜索框
+
         search_html = ''
         if enable_search:
             search_html = f'''
             <div class="modern-search">
                 {search_svg}
-                <input type="text" id="{table_id}_search" placeholder="输入关键字搜索..." onkeyup="searchTableByColumn('{table_id}')">
+                <input type="text" id="{table_id}_search" placeholder="Search keywords..." onkeyup="searchTableByColumn('{table_id}')">
             </div>'''
-        
-        # 工具栏（只有启用搜索或筛选时才显示）
+
         toolbar_html = ''
         if enable_search or enable_filter:
             toolbar_html = '<div class="modern-table-toolbar">'
@@ -370,12 +347,11 @@ class CRISPRReportGenerator:
             if enable_filter:
                 toolbar_html += f'''
             <button type="button" class="modern-filter-btn" onclick="openFilterModal('{table_id}')">
-                {filter_svg} 多条件筛选
+                {filter_svg} Multi-condition Filter
                 <span id="{table_id}_filter_count" class="filter-count-badge"></span>
             </button>'''
             toolbar_html += '</div>'
-        
-        # 多条件筛选弹窗
+
         filter_modal_html = ''
         if enable_filter:
             numeric_cols = []
@@ -389,63 +365,60 @@ class CRISPRReportGenerator:
                         is_numeric = False
                 if is_numeric:
                     numeric_cols.append((i, col))
-            
+
             field_options = ''
             for i, col in enumerate(columns):
                 if col.lower() not in ['gene', 'id', 'sgrna', 'sgrna', 'seq', 'uid']:
                     is_numeric = any(idx == i for idx, _ in numeric_cols)
                     field_options += f'<option value="{i}" data-type="{"numeric" if is_numeric else "text"}">{col}</option>'
-            
+
             filter_modal_html = f'''
             <div id="{table_id}_filter_modal" class="filter-modal">
                 <div class="filter-modal-content">
                     <div class="filter-modal-header">
-                        <div class="subtitle-red">多条件组合筛选</div>
+                        <div class="subtitle-red">Multi-condition Filter</div>
                         <span class="filter-modal-close" onclick="closeFilterModal('{table_id}')">&times;</span>
                     </div>
                     <div class="filter-modal-body">
                         <div class="filter-logic-section">
-                            <label>条件组合逻辑：</label>
+                            <label>Condition Logic:</label>
                             <div class="filter-logic-buttons">
                                 <label class="filter-radio">
                                     <input type="radio" name="{table_id}_logic" value="AND" checked>
-                                    <span>且 (AND) - 所有条件同时满足</span>
+                                    <span>AND - All conditions must be met</span>
                                 </label>
                                 <label class="filter-radio">
                                     <input type="radio" name="{table_id}_logic" value="OR">
-                                    <span>或 (OR) - 满足任一条件即可</span>
+                                    <span>OR - Any condition met</span>
                                 </label>
                             </div>
                         </div>
                         <div id="{table_id}_filter_conditions" class="filter-conditions"></div>
                         <div class="filter-actions">
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="addFilterCondition('{table_id}')">+ 添加筛选条件</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllFilters('{table_id}')">一键清除</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="addFilterCondition('{table_id}')">+ Add Filter</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllFilters('{table_id}')">Clear All</button>
                         </div>
                     </div>
                     <div class="filter-modal-footer">
                         <span id="{table_id}_filter_result_count" class="filter-result-count"></span>
                         <div class="filter-modal-buttons">
-                            <button type="button" class="btn btn-secondary" onclick="closeFilterModal('{table_id}')">取消</button>
-                            <button type="button" class="btn btn-primary" onclick="applyFilters('{table_id}')">筛选</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeFilterModal('{table_id}')">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="applyFilters('{table_id}')">Apply</button>
                         </div>
                     </div>
                 </div>
             </div>
             <select id="{table_id}_field_template" style="display:none;">{field_options}</select>'''
-        
-        # 下载图标
+
         download_svg = '''<span class="download-icon"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M512 666.286l226.286-226.286-60.343-60.343-123.429 123.429V128H469.714v375.086L346.286 379.657l-60.343 60.343L512 666.286zM853.714 853.714H170.286V725.714H85.143v170.857c0 23.429 18.857 42.857 42.857 42.857h768c23.429 0 42.857-19.429 42.857-42.857V725.714h-85.143v128z"/></svg></span>'''
-        
-        # 标题链接
+
         if relative_path:
             href = relative_path.replace('%2F', '/')
             dl_name = html_module.escape(Path(href).name, quote=True)
             caption_html = f'<a href="{href}" class="table-caption-link" download="{dl_name}">{download_svg}<span class="download-text">{caption}</span></a>'
         else:
             caption_html = caption
-        
-        # 无需分页
+
         if total_rows <= max_rows:
             return f'''{toolbar_html}
 {filter_modal_html}
@@ -456,8 +429,7 @@ class CRISPRReportGenerator:
     </table>
 </div>
 <p class="name_table">{caption_html}</p>'''
-        
-        # 分页控件（精简风格：Prev/Next + 页码方块）
+
         init_start = 1
         init_end = min(max_rows, total_rows)
         page_nums_html = ''
@@ -467,7 +439,7 @@ class CRISPRReportGenerator:
                 cls = 'page-num active' if p == 1 else 'page-num'
                 page_nums_html += f'<span class="{cls}" onclick="goToPage(\'{table_id}\', {p})">{p}</span>'
         pagination = f'''<div class="table-pagination" id="{table_id}_pagination">
-            <span class="pagination-info">共 {total_rows} 行，显示 {init_start}-{init_end} 行</span>
+            <span class="pagination-info">Total {total_rows} rows, showing {init_start}-{init_end}</span>
             <div class="pagination-controls">
                 <span class="page-nav prev-nav disabled" onclick="prevPage('{table_id}')">Prev</span>
                 <span class="page-arrow page-arrow-prev disabled" onclick="prevPage('{table_id}')">&lt;</span>
@@ -476,18 +448,17 @@ class CRISPRReportGenerator:
                 <span class="page-nav next-nav" onclick="nextPage('{table_id}')">Next</span>
             </div>
         </div>'''
-        
-        # 存储所有数据
+
         all_rows_data = []
         for idx, row in df.iterrows():
             cells = ''.join([f'<td>{val}</td>' for val in row])
             all_rows_data.append(f'<tr>{cells}</tr>')
         rows_data_json = '|||'.join(all_rows_data)
         rows_data_json = rows_data_json.replace('\\', '\\\\').replace("'", "\\'").replace('\n', '\\n').replace('\r', '\\r')
-        
+
         numeric_cols_info = [i for i, col in enumerate(columns)]
         column_names_json = '|||'.join([c.replace('\\', '\\\\').replace("'", "\\'") for c in columns])
-        
+
         return f'''{toolbar_html}
 {filter_modal_html}
 <div class="table-responsive">
@@ -524,7 +495,7 @@ class CRISPRReportGenerator:
 </script>'''
 
     def _classify_image(self, filename):
-        """根据文件名分类图片"""
+        """Classify images by filename"""
         name_lower = filename.lower()
         if 'quality' in name_lower or 'base_quality' in name_lower:
             return 'base_quality'
@@ -552,60 +523,60 @@ class CRISPRReportGenerator:
             return 'other'
 
     def generate_image_selector(self, images, category, title_prefix="", side_by_side=False, description=None):
-        """生成图片选择器"""
+        """Generate image selector"""
         if not images:
             return ''
-        
+
         groups = self._group_images_by_type(images)
         html = '<div class="image-selector-container">'
-        
+
         for group_key, group_data in groups.items():
             group_images = group_data['images']
             display_name = group_data['display_name']
-            
+
             if not group_images:
                 continue
-            
+
             if side_by_side:
                 html += self._generate_side_by_side_layout(group_images, category, group_key, display_name, description)
             else:
                 html += self._generate_stacked_layout(group_images, category, group_key, display_name)
-        
+
         html += '</div>'
         return html
 
     def _group_images_by_type(self, images):
-        """将图片按类型分组"""
+        """Group images by type"""
         groups = {}
         for img in images:
             name = img['name']
             if 'base_quality' in name.lower() or 'quality' in name.lower():
                 group_name = 'base_quality'
-                display_name = '碱基质量与错误率'
+                display_name = 'Base Quality & Error Rate'
             elif 'raw reads' in name.lower() or 'reads_classification' in name.lower():
                 group_name = 'raw_reads'
-                display_name = '原始 Reads 分类'
+                display_name = 'Raw Reads Classification'
             elif 'volcano' in name.lower():
                 group_name = 'volcano'
-                display_name = '火山图'
+                display_name = 'Volcano Plot'
             elif 'scatter' in name.lower():
                 group_name = 'scatter'
-                display_name = '散点图'
+                display_name = 'Scatter Plot'
             elif 'rank' in name.lower():
                 group_name = 'rank'
-                display_name = '排名图'
+                display_name = 'Rank Plot'
             elif 'kegg' in name.lower():
                 group_name = 'kegg'
-                display_name = 'KEGG通路'
+                display_name = 'KEGG Pathway'
             elif 'go' in name.lower():
                 group_name = 'go'
-                display_name = 'GO富集分析'
+                display_name = 'GO Enrichment'
             elif 'correlation' in name.lower():
                 group_name = 'correlation'
-                display_name = '相关性热图'
+                display_name = 'Correlation Heatmap'
             elif 'density' in name.lower():
                 group_name = 'density'
-                display_name = '密度分布图'
+                display_name = 'Density Distribution'
             elif 'depth' in name.lower():
                 group_name = 'depth'
                 display_name = 'sgRNA Sequencing Depth'
@@ -614,7 +585,7 @@ class CRISPRReportGenerator:
                 display_name = 'Uniformity Slope'
             else:
                 group_name = 'other'
-                display_name = '其他图片'
+                display_name = 'Other Images'
 
             if group_name not in groups:
                 groups[group_name] = {'display_name': display_name, 'images': []}
@@ -622,29 +593,26 @@ class CRISPRReportGenerator:
         return groups
 
     def _generate_side_by_side_layout(self, images, category, group_key, display_name, description=None):
-        """生成左右布局"""
+        """Generate side-by-side image layout"""
         desc_html = f'<p class="modern-img-desc">{description}</p>' if description else ''
         html = f'''
             <div class="modern-img-group">
                 <div class="modern-img-header">
                     <span>{display_name}</span>
-                    <span class="badge">{len(images)}张</span>
+                    <span class="badge">{len(images)} image(s)</span>
                 </div>
                 <div class="modern-img-body">
                     <div class="modern-img-view">
                         <div class="tab-content" id="{category}_{group_key}Content">'''
-        
+
         for idx, img in enumerate(images):
             img_path = img.get('output_path', img['path']).replace('\\', '/')
             show_class = 'show active' if idx == 0 else ''
             html += f'''
                             <div class="tab-pane fade {show_class}" id="{category}_{group_key}-{idx}">
-                                <div class="image-container" ondblclick="toggleFullscreen(this)">
-                                    <img src="{img_path}" alt="{img['name']}">
-                                </div>
+                                <img src="{img_path}" alt="{img['name']}">
                             </div>'''
-        
-        # 只有一张图时不显示右侧选择器，说明文字放在图片下方
+
         if len(images) == 1:
             html += f'''
                         </div>
@@ -657,7 +625,7 @@ class CRISPRReportGenerator:
                         </div>
                     </div>
                     <div class="modern-img-list">'''
-            
+
             for idx, img in enumerate(images):
                 img_name = img['name'].replace('_', ' ').replace('.png', '').replace('.jpg', '')
                 active_class = 'active' if idx == 0 else ''
@@ -665,7 +633,7 @@ class CRISPRReportGenerator:
                         <div class="modern-img-btn {active_class}" onclick="switchImageSideBySide(this, '{category}_{group_key}', {idx})">
                             {img_name}
                         </div>'''
-            
+
             html += '''
                     </div>
                 </div>
@@ -673,10 +641,10 @@ class CRISPRReportGenerator:
         return html
 
     def _generate_stacked_layout(self, images, category, group_key, display_name):
-        """生成上下布局"""
+        """Generate stacked image layout"""
         img_count = len(images)
         group_id = f"{category}_{group_key}"
-        
+
         if img_count == 1:
             img = images[0]
             img_path = img.get('output_path', img['path']).replace('\\', '/')
@@ -684,7 +652,7 @@ class CRISPRReportGenerator:
             <div class="modern-img-group">
                 <div class="modern-img-header">
                     <span>{display_name}</span>
-                    <span class="badge">1 张</span>
+                    <span class="badge">1 image</span>
                 </div>
                 <div class="modern-img-body-stacked">
                     <div class="image-container" ondblclick="toggleFullscreen(this)">
@@ -693,17 +661,17 @@ class CRISPRReportGenerator:
                 </div>
             </div>'''
             return html
-        
+
         html = f'''
             <div class="modern-img-group">
                 <div class="modern-img-header">
                     <span>{display_name}</span>
-                    <span class="badge">{img_count} 张</span>
+                    <span class="badge">{img_count} images</span>
                 </div>
                 <div class="modern-img-body-stacked">
                     <div class="image-tabs-wrapper">
                         <ul class="image-tab-list" id="{group_id}Tabs">'''
-        
+
         for idx, img in enumerate(images):
             img_name = img['name'].replace('_', ' ').replace('.png', '').replace('.jpg', '')
             img_path = img.get('output_path', img['path']).replace('\\', '/')
@@ -713,12 +681,12 @@ class CRISPRReportGenerator:
                                 <img src="{img_path}" alt="{img_name}" class="image-thumbnail">
                                 <span class="image-tab-label">{img_name}</span>
                             </li>'''
-        
+
         html += f'''
                         </ul>
                     </div>
                     <div class="tab-content" id="{group_id}Content">'''
-        
+
         for idx, img in enumerate(images):
             img_name = img['name'].replace('_', ' ').replace('.png', '').replace('.jpg', '')
             img_path = img.get('output_path', img['path']).replace('\\', '/')
@@ -731,7 +699,7 @@ class CRISPRReportGenerator:
                                 </div>
                             </div>
                         </div>'''
-        
+
         html += '''
                     </div>
                 </div>
@@ -739,8 +707,7 @@ class CRISPRReportGenerator:
         return html
 
     def _generate_html(self):
-        """生成HTML内容"""
-        # 收集所有图片到实例变量
+        """Generate the full HTML content"""
         self.all_images = []
         for rel_path, images in self.image_files.items():
             for img in images:
@@ -748,8 +715,7 @@ class CRISPRReportGenerator:
                 img_copy['rel_path'] = rel_path
                 img_copy['type'] = self._classify_image(img['name'])
                 self.all_images.append(img_copy)
-        
-        # 按类型分组图片
+
         images_by_type = {}
         for img in self.all_images:
             img_type = img['type']
@@ -757,7 +723,6 @@ class CRISPRReportGenerator:
                 images_by_type[img_type] = []
             images_by_type[img_type].append(img)
 
-        # 封面资源
         logo_src = f"data:image/png;base64,{self.logo_base64}" if self.logo_base64 else ""
         bg_mime = getattr(self, 'bg_mime', 'image/png')
         bg_src = f"data:{bg_mime};base64,{self.bg_base64}" if self.bg_base64 else ""
@@ -765,13 +730,13 @@ class CRISPRReportGenerator:
         bg_display = 'block' if self.bg_base64 else 'none'
 
         html = f'''<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{self.project_name}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/jquery-ui.css">
     <link rel="stylesheet" href="css/jquery.tocify.css">
@@ -781,10 +746,10 @@ class CRISPRReportGenerator:
 </head>
 <body>
 
-    <!-- 目录导航 -->
-    <nav class="toc-sidebar" aria-label="快速通道">
+    <!-- TOC Sidebar -->
+    <nav class="toc-sidebar" aria-label="Quick Navigation">
         <div class="toc-sidebar-header">
-            <span class="toc-sidebar-title">快速通道</span>
+            <span class="toc-sidebar-title">Quick Navigation</span>
             <span class="toc-sidebar-header-icon">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13.01 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C17.52 13.06 15.58 16.4 13 21z"/></svg>
             </span>
@@ -794,27 +759,26 @@ class CRISPRReportGenerator:
         </div>
     </nav>
 
-    <!-- 主内容区 -->
+    <!-- Main Content -->
     <div class="main-content">
     <div class="report-container">
 
 '''
-        # 封面页 — 横版左文右图布局（对齐参考脚本结构）
-        protocol_text = f"协议编号：{self.protocol_number}" if self.protocol_number else ""
+        protocol_text = f"Protocol No.: {self.protocol_number}" if self.protocol_number else ""
         html += f'''
         <div class="report-cover">
             <div class="report-cover-inner">
             <div class="cover-header">
                 <div class="cover-logo">
-                    <img src="{logo_src}" alt="源井生物" style="display: {logo_display};">
+                    <img src="{logo_src}" alt="Logo" style="display: {logo_display};">
                 </div>
             </div>
 
             <div class="cover-body">
                 <div class="cover-body-upper">
                     <div class="cover-center-block">
-                        <h1 class="cover-main-title">sgRNA文库</h1>
-                        <div class="cover-title-badge">分析报告</div>
+                        <h1 class="cover-main-title">sgRNA Library</h1>
+                        <div class="cover-title-badge">Analysis Report</div>
                     </div>
                 </div>
                 <img src="{bg_src}" alt="" class="cover-artwork" style="display: {bg_display};">
@@ -826,8 +790,7 @@ class CRISPRReportGenerator:
             </div>
         </div>
 '''
-        
-        # 报告头部
+
         html += f'''
 <br>
             <header class="report-header">
@@ -835,19 +798,19 @@ class CRISPRReportGenerator:
                 <div class="report-header-box">
                     <div class="report-meta-grid">
                         <div class="report-meta-row">
-                            <span class="report-meta-label">项目编号</span>
+                            <span class="report-meta-label">Project ID</span>
                             <span class="report-meta-value">{self.project_id}</span>
                         </div>
                                                 <div class="report-meta-row">
-                            <span class="report-meta-label">数据类型</span>
-                            <span class="report-meta-value">sgRNA文库测序分析</span>
+                            <span class="report-meta-label">Data Type</span>
+                            <span class="report-meta-value">sgRNA Library Sequencing Analysis</span>
                         </div>
                         <div class="report-meta-row">
-                            <span class="report-meta-label">报告类型</span>
+                            <span class="report-meta-label">Report Type</span>
                             <span class="report-meta-value">{self.project_name}</span>
                         </div>
                                                 <div class="report-meta-row">
-                            <span class="report-meta-label">报告时间</span>
+                            <span class="report-meta-label">Report Date</span>
                             <span class="report-meta-value">{self.report_date}</span>
                         </div>
                     </div>
@@ -856,20 +819,12 @@ class CRISPRReportGenerator:
             <br><br>
 
 '''
-        # 1. 项目摘要
-        html += self._generate_section('overview', '1 项目摘要', self._generate_overview_section())
-
-        # 2. 数据质控
-        html += self._generate_section('quality-control', '2 数据质控', self._generate_qc_section())
-
-        # 3. Reads比对
-        html += self._generate_section('mapping', '3 统计分析', self._generate_mapping_section())
-
-        # 4. 图表展示
+        html += self._generate_section('overview', '1 Project Summary', self._generate_overview_section())
+        html += self._generate_section('quality-control', '2 Quality Control', self._generate_qc_section())
+        html += self._generate_section('mapping', '3 Statistical Analysis', self._generate_mapping_section())
         if images_by_type:
-            html += self._generate_section('figures', '4 图表展示', self._generate_figures_section(images_by_type))
+            html += self._generate_section('figures', '4 Figures', self._generate_figures_section(images_by_type))
 
-        # 页脚
         html += '''
     </div>
 
@@ -905,7 +860,7 @@ class CRISPRReportGenerator:
         return html
 
     def _generate_section(self, section_id, title, content):
-        """生成章节HTML"""
+        """Generate a section HTML block"""
         parts = title.split(' ', 1)
         if len(parts) == 2 and parts[0].isdigit():
             num_html = f'<span class="num-box">{parts[0]}</span>'
@@ -913,96 +868,96 @@ class CRISPRReportGenerator:
         else:
             num_html = ''
             text_html = title
-        
+
         return f'''
 <div class="report-section-wrap">
 <hr />
 <section id="{section_id}" class="report-section">
-    <h2 class="section-title-modern">{num_html}{text_html}</h2>
+    <h2 class="section-title-modern">{num_html}&nbsp;{text_html}</h2>
                 {content}
             </section>
 </div>
 '''
 
     def _generate_overview_section(self):
-        """生成项目摘要章节"""
+        """Generate the Project Summary section (Section 1)"""
         return '''
-        <h3>技术概述</h3>
+        <h3>Technical Overview</h3>
         <p class="para-no-indent">
-            gRNA文库构建基本原理是通过一段与靶标DNA相同的gRNA指导Cas9核酸酶对靶向基因进行DNA修饰，以此造成基因的功能突变或缺失。在此基础上，利用CRISPR/Cas9技术建立哺乳动物全基因组突变库或者与某类功能相关的基因突变体库，通过功能性筛选和富集以及随后的PCR扩增和深度测序分析，发掘与筛选表型相关的基因，称为 CRISPR/Cas9 gRNA文库筛选。
+            The basic principle of gRNA library construction is to utilize a gRNA that is identical to the target DNA to guide Cas9 nuclease to modify the DNA of the target gene, so as to cause the functional mutation or loss of the gene. On this basis, CRISPR/Cas9 technology is used to establish mammalian genome-wide mutation libraries or gene mutant libraries related to a certain category of function. Through functional screening and enrichment, as well as subsequent PCR amplification and deep sequencing analysis, genes related to the phenotype are discovered and screened. This process is called <strong>CRISPR/Cas9 gRNA library screening</strong>.
         </p>
 
-        <h3>gRNA文库应用</h3>
+        <h3>gRNA Library Applications</h3>
         <p class="para-no-indent">
-            gRNA文库是药物筛选或靶向筛选特定通路的理想工具，gRNA文库的建立将在功能基因筛选、疾病机制研究及药物研发等方面发挥重要的功能。gRNA文库包括全基因组文库、IncRNA文库、信号通路、细胞凋亡、细胞增殖、离子通道、核受体相关、各种疾病相关等文库。全基因组gRNA文库的构建可以针对任何类型的基因组DNA，包括ORF cDNA，IncRNA cDNA以及特定区域的cDNA片段等。能够针对全长cDNA乃至基因组DNA构建高效的RNA文库，适用于高通量功能基因及相关药物靶点筛选。
+            gRNA library is an ideal tool for drug screening or targeted screening of specific pathways. The establishment of gRNA libraries plays an important role in functional gene screening, disease mechanism research, and drug development. gRNA libraries include genome-wide libraries, lncRNA libraries, pathway-specific libraries (e.g., signaling pathways, cell apoptosis, cell proliferation, ion channels, nuclear receptor, and various diseases). The construction of genome-wide gRNA libraries can target any type of genomic DNA, including ORF cDNA, lncRNA cDNA, and cDNA fragments of specific regions. An efficient gRNA library constructed to target full-length cDNA or genomic DNA is highly suitable for high-throughput functional gene and related drug target screening.
         </p>
 
-        <h3>实验流程</h3>
+        <h3>Experimental Workflow</h3>
 
-        <h4 class="subtitle-red">1.1 文库制备</h4>
+        <h4 class="subtitle-red">1.1 Library Preparation</h4>
         <p class="para-no-indent">
-            DNA样品经DNA片段化(Shear)、末端补平(End repair)、片段3端加A尾(Add 3\'A Tail)、连接接头(Ligate Adapters)、片段筛选(Clean)、PCR扩增(Enrich with PCR)、片段筛选(Clean)、PCR产物质检(QC)等步骤构建形成Illumina平台高通量测序文库。
+            DNA samples are processed through DNA fragmentation (Shear), end repair, 3\' end A-tailing (Add 3\'A Tail), adapter ligation (Ligate Adapters), size selection (Clean), PCR enrichment (Enrich with PCR), size selection (Clean), and PCR product QC to construct an Illumina high-throughput sequencing library.
         </p>
         <div style="margin: 20px 0; text-align: center;">
-            <img src="images/flute.png" alt="文库制备流程图" style="max-height: 500px;">
+            <img src="images/flute.png" alt="Library Preparation Workflow" style="max-height: 500px;">
         </div>
 
-        <h4 class="subtitle-red">1.2 测序</h4>
+        <h4 class="subtitle-red">1.2 Sequencing</h4>
         <p class="para-no-indent">
-            Illumina平台上机测序。fastq是测序数据下机格式，其中包含测序序列(reads)的序列信息，及其对应的测序质量信息。fastq格式文件中每个read由四行描述，如下：
+            Sequencing is performed on the Illumina platform. FASTQ is the output format of the sequencing platforms. It contains the sequence information of reads and their corresponding sequencing quality information. Each read in a FASTQ format file is described in four lines as follows:
         </p>
 
         <div class="rounded-info-box">
             <div style="margin: 15px 0; text-align: center;">
-                <img src="images/fastq.png" alt="测序数据图" style="max-height: 380px;">
+                <img src="images/fastq.png" alt="Sequencing Data" style="max-height: 380px;">
             </div>
             <p class="para-no-indent" style="margin-top: 10px;">
-            <strong>第一行</strong>以"@"开头，后面是这个read的基本信息，分为两部分：ID部分和可选的描述部分，中间用空格分开，ID部分是每条read的唯一标识，它包含多个字段，每个字段之间用冒号分隔；描述区域是可选的，用来保存一些自定义的信息，如测序时用到的引物序列信息等。
+            <strong>Line 1</strong> starts with "@" and is followed by the basic identifier information of the read (divided into a unique ID and optional description fields separated by a space). The ID part is the unique identifier for each read, containing multiple fields separated by colons. The description area is optional and can store custom information such as primer sequences used during sequencing.
             </p>
             <p class="para-no-indent" style="margin-top: 8px;">
-            <strong>第二行</strong>是碱基序列(分ATCGN5种情况，N代表不确定碱基类型)。
+            <strong>Line 2</strong> is the base sequence (comprising A, T, C, G, N where N represents an uncertain base type).
             </p>
             <p class="para-no-indent" style="margin-top: 8px;">
-            <strong>第三行</strong>用于将测序序列和质量值内容分离开来，以'+'开头，后面可添加第一行的描述信息。
+            <strong>Line 3</strong> starts with "+" and is used to separate the sequencing sequence from the quality value content. Optionally, the description from Line 1 can be appended.
             </p>
             <p class="para-no-indent" style="margin-top: 8px;">
-            <strong>第四行</strong>为对应碱基序列的测序质量(以ASCII码形式储存，与第二行的碱基序列一一对应)。
+            <strong>Line 4</strong> contains the sequencing quality scores for the corresponding base sequence (stored in ASCII code, corresponding one-to-one with the base sequence in Line 2).
             </p>
         </div>
 
-        <h4 class="subtitle-red">1.3 数据分析</h4>
+        <h4 class="subtitle-red">1.3 Data Analysis</h4>
 
         <div class="sub-content-block">
-        <h4 class="subtitle-black">1.3.1 测序数据质控</h4>
-        <p class="para-no-indent">对原始测序数据进行质量控制（QC），去除低质量 Reads 和接头污染序列，获得 Clean Reads 用于后续分析。</p>
+        <h4 class="subtitle-black">1.3.1 Sequencing Data QC</h4>
+        <p class="para-no-indent">Quality control (QC) is performed on raw sequencing data. Low-quality reads and adapter contamination are removed to obtain clean reads for downstream analysis.</p>
 
-        <h4 class="subtitle-black">1.3.2 Reads 比对</h4>
-        <p class="para-no-indent">将 Clean Reads 与 sgRNA 文库参考序列进行比对，提取并统计各 sgRNA 的 Reads 数目。</p>
+        <h4 class="subtitle-black">1.3.2 Reads Alignment</h4>
+        <p class="para-no-indent">Clean reads are aligned to the sgRNA library reference sequence. The read count for each sgRNA is extracted and tallied.</p>
 
-        <h4 class="subtitle-black">1.3.3 统计分析</h4>
-        <p class="para-no-indent">对比对结果进行统计分析，包括比对上的 Reads 数量、覆盖的 sgRNA 和基因数目、覆盖率及Reads 均一性等质控指标。</p>
+        <h4 class="subtitle-black">1.3.3 Statistical Analysis</h4>
+        <p class="para-no-indent">Statistical analysis is performed on the alignment results, including the number of mapped reads, number of covered sgRNAs and genes, coverage rate, and read uniformity.</p>
         </div>
 
 '''
 
     def _generate_qc_section(self):
-        """生成数据质控章节"""
+        """Generate the Quality Control section (Section 2)"""
         html = '''
-        <h3>测序质量与错误率分布统计</h3>
+        <h3>Sequencing Quality and Error Rate Distribution</h3>
         <p class="para-no-indent">
-            测序错误率与碱基质量有关，受测序仪本身、测序试剂、样品等多个因素共同影响。对于Illumina高通量测序平台，测序质量和错误率分布具有两个特点：
+            Sequencing error rate is related to base quality and is jointly affected by factors including the sequencer itself, sequencing reagents, and samples. For Illumina high-throughput sequencing platforms, sequencing quality and error rate distribution exhibit two characteristics:
         </p>
         <ul class="overview-list">
-            <li>每个read的前几个碱基的测序质量一般较低，这是由于边合成边测序过程初始阶段，测序仪荧光感光元件对焦速度较慢。获取的荧光图像质量较低，导致碱基识别错误率较高。</li>
-            <li>随着测序的进行，错误率会升高，测序质量降低，这是由于测试过程中荧光基团的不完全切割和de-phasing引起荧光信号衰减。</li>
+            <li>The quality of the first few bases in each read is typically lower, due to slower focusing of the sequencer's fluorescence-sensitive element during the initial stage of sequencing-by-synthesis, resulting in lower-quality fluorescence images and higher base-calling error rates.</li>
+            <li>As sequencing progresses, the error rate increases and quality decreases due to incomplete fluorophore cleavage and de-phasing, which cause signal attenuation.</li>
         </ul>
 
-        <h4 style="color: #222; text-indent: 0;">质量分数与错误率换算关系</h4>
+        <h4 style="color: #222; text-indent: 0;">Quality Score and Error Rate Conversion</h4>
         <p class="para-no-indent">
-            如果碱基的质量分数用Q表示，识别错误率用P表示，则碱基的质量分数和错误率能用以下公式表示：
+            If the base quality score is denoted as Q and the error probability as P, the relationship between quality score and error rate is given by the following formulas:
         </p>
         <div class="gray-formula-box">
-            <p style="margin: 5px 0;"><strong>Q = -10 × log₁₀P</strong></p>
+            <p style="margin: 5px 0;"><strong>Q = -10 &times; log&#8321;&#8320;P</strong></p>
             <p style="margin: 5px 0;"><strong>P = 10^(-Q/10)</strong></p>
         </div>
 
@@ -1023,26 +978,24 @@ class CRISPRReportGenerator:
                 </tbody>
             </table>
 
-        <h3 style="color: #222; border-left: 4px solid #da1e33; padding-left: 10px; font-size: 18px; margin: 20px 0 15px 0; font-weight: bold;">原始数据过滤说明</h3>
+        <h3 style="color: #222; border-left: 4px solid #da1e33; padding-left: 10px; font-size: 18px; margin: 20px 0 15px 0; font-weight: bold;">Raw Data Filtering</h3>
         <p class="para-no-indent">
-            测序得到的原始测序序列，里面含有带接头的、低质量的reads。为了保证信息分析质量，需要对raw reads进行精细过滤，得到clean reads，后续分析都基于clean reads进行。
+            Raw sequencing data may contain adapter sequences and low-quality reads. To ensure data quality, raw reads are filtered to obtain clean reads, upon which all downstream analyses are based.
         </p>
 
-        <h3 style="color: #222; border-left: 4px solid #da1e33; padding-left: 10px; font-size: 18px; margin: 20px 0 15px 0; font-weight: bold;">数据处理步骤：</h3>
+        <h3 style="color: #222; border-left: 4px solid #da1e33; padding-left: 10px; font-size: 18px; margin: 20px 0 15px 0; font-weight: bold;">Data Processing Steps:</h3>
         <ol style="list-style-type: decimal; margin: 10px 0 10px 0; padding-left: 1.8em; line-height: 1.9; color: #3E3A39;">
-            <li style="margin-bottom: 6px;">去除长度小于50的reads对；</li>
-            <li style="margin-bottom: 6px;">reads中N碱基的比例大于10%时，需要去除此对reads；</li>
-            <li style="margin-bottom: 6px;">去除Q20小于80%的reads对（Q20指reads的碱基质量分数大于等于20）。</li>
+            <li style="margin-bottom: 6px;">Remove read pairs with length less than 50 bp.</li>
+            <li style="margin-bottom: 6px;">Remove read pairs if the proportion of N bases exceeds 10%.</li>
+            <li style="margin-bottom: 6px;">Remove read pairs with Q20 less than 80% (Q20 refers to base quality score &ge; 20).</li>
         </ol>
 
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
 
 '''
-        # Clean Summary数据
         if self.clean_summary is not None:
-            html += '<h3>数据质控统计</h3>'
+            html += '<h3>QC Statistics</h3>'
 
-            # 整数列转为 int（total_reads、clean_reads、discard_reads 等）
             for col in self.clean_summary.columns:
                 col_lower = col.lower()
                 if any(k in col_lower for k in ('reads',)):
@@ -1051,7 +1004,6 @@ class CRISPRReportGenerator:
                     except Exception:
                         pass
 
-            # 计算 Effective_Rate(%) = clean_reads / total_reads * 100，放在 discard_reads 右边
             if 'total_reads' in self.clean_summary.columns and 'clean_reads' in self.clean_summary.columns:
                 total = pd.to_numeric(self.clean_summary['total_reads'], errors='coerce')
                 clean = pd.to_numeric(self.clean_summary['clean_reads'], errors='coerce')
@@ -1062,7 +1014,6 @@ class CRISPRReportGenerator:
                 cols.insert(pos + 1, 'Effective_Rate(%)')
                 self.clean_summary = self.clean_summary[cols]
 
-            # Q20/Q30/GC 数值列：去掉%后转数值并×100转为百分比，列名加(%)后缀
             pct_rename = {}
             for col in self.clean_summary.columns:
                 col_lower = col.lower()
@@ -1081,11 +1032,9 @@ class CRISPRReportGenerator:
             if pct_rename:
                 self.clean_summary = self.clean_summary.rename(columns=pct_rename)
 
-            # 如果用户指定了样本名称，覆盖 Sample 列
             if self.sample_name and 'Sample' in self.clean_summary.columns:
                 self.clean_summary['Sample'] = self.sample_name
 
-            # 获取CSV相对路径
             rel_path = None
             for rel_path_key, files in self.data_files.items():
                 for f in files:
@@ -1095,42 +1044,40 @@ class CRISPRReportGenerator:
                 if rel_path:
                     break
 
-            html += self.generate_table_html(self.clean_summary.head(1), "Clean Summary 数据概览",
+            html += self.generate_table_html(self.clean_summary.head(1), "Clean Summary Overview",
                                             relative_path=rel_path)
 
             html += '''
             <div class="plain-field-desc">
-                <strong>字段说明：</strong><br>
-                Sample：样本名称；<br>
-                total_reads：原始reads数；<br>
-                clean_reads：经过滤后的有效reads数；<br>
-                discard_reads：过滤丢弃的reads数；<br>
-                Effective_Rate(%)：过滤得到的clean reads数占raw reads数的比例；<br>
-                Q20(%)：测序质量值大于20的碱基占总碱基的百分比；<br>
-                Q30(%)：测序质量值大于30的碱基占总碱基的百分比；<br>
-                GC(%)：GC碱基占总碱基的百分比
+                <strong>Field Descriptions:</strong><br>
+                Sample: Sample name;<br>
+                total_reads: Total number of raw reads;<br>
+                clean_reads: Number of effective reads after filtering;<br>
+                discard_reads: Number of discarded reads after filtering;<br>
+                Effective_Rate(%): Percentage of clean reads relative to raw reads;<br>
+                Q20(%): Percentage of bases with quality score &ge; 20;<br>
+                Q30(%): Percentage of bases with quality score &ge; 30;<br>
+                GC(%): Percentage of GC bases among total bases
             </div>
 '''
-        
-        # 添加原始数据质量分布图（如果有）
+
         quality_imgs = [img for img in self.all_images if img['type'] in ['base_quality', 'raw_reads']]
         if quality_imgs:
-            html += '<h3>原始数据质量分布图</h3>'
+            html += '<h3>Raw Data Quality Distribution</h3>'
             html += '''
             <p class="para-no-indent">
-                展示各样本原始测序数据的质量分布情况，包括碱基质量分布、GC含量分布等，用于评估测序数据的可靠性。
+                Displays the quality distribution of raw sequencing data for each sample, including base quality distribution, GC content distribution, etc., used to evaluate the reliability of sequencing data.
             </p>
             '''
-            html += self.generate_image_selector(quality_imgs[:2], "qc_images", "质控图", side_by_side=True)
-        
+            html += self.generate_image_selector(quality_imgs[:2], "qc_images", "QC Charts", side_by_side=True)
+
         return html
 
     def _generate_mapping_section(self):
-        """生成比对分析章节"""
+        """Generate the Statistical Analysis section (Section 3)"""
         html = ''
-        
+
         if self.mapping_result is not None:
-            # 整数列转为 int（Reads、Mapped、NotMapped、NotFound、Total/Zero sgrnas/genes 等）
             int_like_cols = []
             for col in self.mapping_result.columns:
                 col_lower = col.lower()
@@ -1144,7 +1091,6 @@ class CRISPRReportGenerator:
                 except Exception:
                     pass
 
-            # Mean_depth / Median_depth / Max_depth / skew_ratio 保留两位小数
             for col in self.mapping_result.columns:
                 col_lower = col.lower()
                 if col_lower in ('mean_depth', 'median_depth', 'max_depth', 'skew_ratio'):
@@ -1153,7 +1099,6 @@ class CRISPRReportGenerator:
                     except Exception:
                         pass
 
-            # 重命名 Percentage1；Percentage2 计算为 Coverage Rate (%)
             rename_map = {}
             for old_col, new_col in [('Percentage1', 'Mapping_Rate(%)')]:
                 if old_col in self.mapping_result.columns:
@@ -1163,12 +1108,10 @@ class CRISPRReportGenerator:
                         rename_map[old_col] = new_col
                     except Exception:
                         pass
-            # Coverage Rate (%) = 1 - Percentage2
             if 'Percentage2' in self.mapping_result.columns:
                 try:
                     raw = self.mapping_result['Percentage2'].astype(str).str.replace('%', '', regex=False)
                     p2 = pd.to_numeric(raw, errors='coerce')
-                    # 如果值 > 1 则视为百分数，否则视为小数比例
                     if p2.max() > 1:
                         self.mapping_result['Coverage Rate (%)'] = (100 - p2).round(2)
                     else:
@@ -1179,7 +1122,6 @@ class CRISPRReportGenerator:
             if rename_map:
                 self.mapping_result = self.mapping_result.rename(columns=rename_map)
 
-            # Coverage Rate (%) 放到 Zero_sgrnas 右边
             if 'Coverage Rate (%)' in self.mapping_result.columns and 'Zero_sgrnas' in self.mapping_result.columns:
                 cols = list(self.mapping_result.columns)
                 cols.remove('Coverage Rate (%)')
@@ -1187,7 +1129,6 @@ class CRISPRReportGenerator:
                 cols.insert(pos + 1, 'Coverage Rate (%)')
                 self.mapping_result = self.mapping_result[cols]
 
-            # 获取CSV相对路径
             rel_path = None
             for rel_path_key, files in self.data_files.items():
                 for f in files:
@@ -1198,37 +1139,35 @@ class CRISPRReportGenerator:
                     break
 
             html += '''
-        <h3>样本 Reads 统计</h3>
+        <h3>Sample Reads Statistics</h3>
         <p class="para-no-indent">
-            从reads中提取sgRNA序列，比对到sgRNA文库的参考序列，并对比对结果进行统计，包括完全匹配的reads数量，匹配到的sgRNA、基因数量和覆盖率、均一性等指标。根据这些指标可反映数据的可靠性和准确性。
+            sgRNA sequences are extracted from reads and aligned to the sgRNA library reference sequence. Statistical analysis is performed on the alignment results, including the number of perfectly matched reads, the number of matched sgRNAs and genes, coverage, and uniformity. These metrics reflect the reliability and accuracy of the data.
         </p>
 '''
-            html += self.generate_table_html(self.mapping_result, "比对信息统计表", 
+            html += self.generate_table_html(self.mapping_result, "Alignment Statistics",
                                             relative_path=rel_path)
 
             html += '''
             <div class="plain-field-desc">
-                <strong>字段说明：</strong><br>
-                Reads：gRNA reads总数；<br>
-                Mapped：完全比对上gRNA Library的reads数目；<br>
-                NotMapped：未能比对上参考序列的reads数目；<br>
-                NotFound：在文库中未找到的reads数目；<br>
-                Mapping_Rate(%)：比对率（Mapped reads占总reads的比例）；<br>
-                Total_sgrnas：gRNA Library中的gRNA数目；<br>
-                Zero_sgrnas：gRNA文库中丢失的gRNA数目；<br>
-                Coverage Rate (%)：文库覆盖度，即检测到的 gRNA 占总 gRNA 的百分比；<br>
-                Mean_depth：gRNA平均测序深度，即比对上参考序列的gRNA reads的总数目除以gRNA Library中被比对的gRNA数目；<br>
-                Median_depth：gRNA测序深度的中位数；<br>
-                Max_depth：gRNA最高测序深度，即gRNA Library中所有gRNA中比对上最多reads的gRNA的比对数目；<br>
-                Total_genes：gRNA library对应基因总数；<br>
-                Zero_genes：未能检测到的基因数目；<br>
-                skew_ratio：文库均一性比例，累积分布达90%与10%时对应gRNA数目的比值
+                <strong>Field Descriptions:</strong><br>
+                Reads: Total number of gRNA reads;<br>
+                Mapped: Number of reads perfectly matching the gRNA library;<br>
+                NotMapped: Number of reads not aligned to the reference sequence;<br>
+                NotFound: Number of reads not found in the library;<br>
+                Mapping_Rate(%): Mapping rate (proportion of mapped reads to total reads);<br>
+                Total_sgrnas: Number of gRNAs in the gRNA library;<br>
+                Zero_sgrnas: Number of missing/undetected gRNAs in the library;<br>
+                Coverage Rate (%): Library coverage, the percentage of detected gRNAs among total gRNAs;<br>
+                Mean_depth: Average sequencing depth per gRNA;<br>
+                Median_depth: Median sequencing depth of gRNAs;<br>
+                Max_depth: Maximum sequencing depth observed for a single gRNA;<br>
+                Total_genes: Total number of targeted genes in the library;<br>
+                Zero_genes: Number of undetected genes;<br>
+                skew_ratio: Library uniformity ratio (ratio of gRNA count at 90% cumulative distribution to 10% cumulative distribution)
         </div>
 '''
 
-        # sgRNA counts 详细表格
         if self.sgrna_counts is not None and not self.sgrna_counts.empty:
-            # 获取CSV相对路径
             sgrna_rel_path = None
             for rel_path_key, files in self.data_files.items():
                 for f in files:
@@ -1239,38 +1178,37 @@ class CRISPRReportGenerator:
                     break
 
             html += '''
-        <h3>sgRNA Counts 详细数据</h3>
+        <h3>sgRNA Counts Detail</h3>
         <p class="para-no-indent">
-            以下展示每条sgRNA的详细计数的完整数据。
+            The following table shows the complete count data for each individual sgRNA.
         </p>
 '''
-            html += self.generate_table_html(self.sgrna_counts, "sgRNA Counts 详细数据",
+            html += self.generate_table_html(self.sgrna_counts, "sgRNA Counts Detail",
                                             max_rows=10, relative_path=sgrna_rel_path,
                                             enable_search=True, enable_filter=True)
 
             html += '''
         <div class="plain-field-desc">
-            <strong>字段说明：</strong><br>
-            gene：sgRNA对应的目标基因；<br>
-            uid：sgRNA的唯一标识符；<br>
-            seq：sgRNA的核酸序列；<br>
-            counts：比对到该sgRNA的reads数目
+            <strong>Field Descriptions:</strong><br>
+            gene: Target gene corresponding to the sgRNA;<br>
+            uid: Unique identifier of the sgRNA;<br>
+            seq: Nucleic acid sequence of the sgRNA;<br>
+            counts: Number of reads aligned to this sgRNA
         </div>
 '''
 
         return html
 
     def _generate_figures_section(self, images_by_type):
-        """生成图表展示章节"""
-        html = '<p class="para-no-indent">以下展示本次分析生成的各种图表。</p>'
+        """Generate the Figures section (Section 4)"""
+        html = '<p class="para-no-indent">Charts and figures generated from the analysis are shown below.</p>'
 
-        # 深度和均一性图片（排除 base_quality 和 raw_reads）
         display_names = {
-            'depth': '测序深度分布',
-            'uniformity': '均一性分析'
+            'depth': 'Sequencing Depth Distribution',
+            'uniformity': 'Uniformity Analysis'
         }
-        depth_desc = '根据sgRNA文库中每条sgRNA比对到的reads数目，进行归纳统计，并将统计结果可视化，直观展示sgRNA的测序深度分布情况。'
-        uniformity_desc = '文库均一性用skew ratio表示，是累积分布达到90%时对应的gRNA数目与累积分布达到10%时对应的gRNA数目的比值。文库的均一性评估在功能筛选上是非常重要的，可以有效避免sgRNA的缺失导致的筛选阳性靶点的遗漏以及假阳性结果。'
+        depth_desc = 'Inductive statistics on the alignment counts show the sequencing depth distribution of sgRNAs across the library, providing an intuitive visualization of how reads are distributed among individual sgRNAs.'
+        uniformity_desc = 'Library uniformity is described by the skew ratio, calculated as the ratio of gRNA depth at the 90th percentile to the gRNA depth at the 10th percentile of the cumulative distribution. Evaluating library uniformity is critical for downstream functional screening, as it effectively prevents false-negative results from missing sgRNAs and false-positive artifacts caused by biased sgRNA representation.'
         for img_type in ['depth', 'uniformity']:
             if img_type in images_by_type:
                 images = images_by_type[img_type]
@@ -1281,8 +1219,8 @@ class CRISPRReportGenerator:
         return html
 
     def _get_style_css(self):
-        """获取style.css完整内容"""
-        return '''/* ========== 封面页：宽屏横版，左文右图布局 ========== */
+        """Get full style.css content"""
+        return '''/* ========== Cover: wide landscape, left-text-right-image layout ========== */
 .report-cover {
     width: 100%;
     background-color: #fff;
@@ -1290,7 +1228,6 @@ class CRISPRReportGenerator:
     page-break-after: always;
     box-sizing: border-box;
 }
-/* 封面专用内容宽：与正文容器一致 1200px，适配宽屏横版 */
 .report-cover-inner {
     max-width: 1200px;
     margin: 0 auto;
@@ -1299,7 +1236,6 @@ class CRISPRReportGenerator:
     padding: 0 24px;
 }
 
-/* 顶部：左侧 logo.png */
 .cover-header {
     display: flex;
     justify-content: flex-start;
@@ -1315,7 +1251,6 @@ class CRISPRReportGenerator:
     display: block;
     object-fit: contain;
 }
-/* 主体：横版左右布局，左文右图 */
 .cover-body {
     background-color: #ffffff;
     display: flex;
@@ -1326,7 +1261,6 @@ class CRISPRReportGenerator:
     gap: 40px;
     min-height: 420px;
 }
-/* 左侧：标题+红标，统一左对齐 */
 .cover-body-upper {
     display: flex;
     flex-direction: column;
@@ -1369,7 +1303,6 @@ class CRISPRReportGenerator:
     letter-spacing: 0.35em;
     text-indent: 0.35em;
 }
-/* 右侧：背景插画，整体位于画面右半部分 */
 .cover-artwork {
     flex: 1 1 auto;
     min-width: 0;
@@ -1381,7 +1314,6 @@ class CRISPRReportGenerator:
     object-fit: contain;
     object-position: center center;
 }
-/* 左下角：协议编号 */
 .cover-footer {
     padding: 0 0 16px;
     background: #ffffff;
@@ -1401,7 +1333,6 @@ class CRISPRReportGenerator:
     .cover-header {
         padding: 16px 0 10px;
     }
-    /* 小屏回退为纵向堆叠 */
     .cover-body {
         flex-direction: column;
         align-items: flex-start;
@@ -1427,14 +1358,13 @@ class CRISPRReportGenerator:
     }
 }
 
-/* 基础样式重置 */
 html, body, div, ul, ol {
     margin: 0;
     padding: 0;
 }
 html, body, div, ul, ol { margin: 0; padding: 0; }
 body {
-    font-family: 'Source Sans 3', 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    font-family: 'Source Sans 3', 'Inter', 'Segoe UI', sans-serif;
     font-size: 14px;
     line-height: 1.6;
     color: #3E3A39;
@@ -1443,7 +1373,6 @@ body {
 a { color: #da1e33; text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-/* ========== 侧边目录 ========== */
 .toc-sidebar {
     position: fixed;
     left: 16px;
@@ -1524,7 +1453,6 @@ a:hover { text-decoration: underline; }
 .toc-sidebar .tocify-subheader .tocify-item > a { color: #3e3a39; font-weight: 400; font-size: 13px; }
 .toc-sidebar .tocify-subheader .tocify-item.active > a { color: #da1e33; font-weight: 600; }
 
-/* ========== 主内容区 ========== */
 .main-content {
     margin-left: 280px;
     margin-right: 280px;
@@ -1543,7 +1471,6 @@ a:hover { text-decoration: underline; }
     .report-container { padding: 0; }
 }
 
-/* ========== 报告头部 ========== */
 .report-header { margin-bottom: 2rem; }
 .report-title {
     text-align: center;
@@ -1572,7 +1499,6 @@ a:hover { text-decoration: underline; }
     .report-header-box { padding: 20px 24px; }
 }
 
-/* ========== 章节样式 ========== */
 .report-section { margin-bottom: 40px; }
 h2.section-title-modern {
     display: flex;
@@ -1608,7 +1534,6 @@ h2.section-title-modern .num-box {
 .report-section h5 { color: #333; font-size: 14px; margin: 12px 0 8px 0; font-weight: bold; }
 .report-section .section-sub-indent { margin-left: 20px; }
 
-/* ========== 段落样式 ========== */
 .paragraph { text-indent: 2em; line-height: 1.8; margin: 10px 0; }
 .para-no-indent { font-size: 14px; text-indent: 0; line-height: 1.8; color: #3E3A39; margin: 10px 0; }
 .overview-list { list-style: none; margin: 10px 0 10px 0; padding: 0; }
@@ -1620,9 +1545,8 @@ h2.section-title-modern .num-box {
     color: #3E3A39;
     margin-bottom: 6px;
 }
-.overview-list li::before { content: "·"; position: absolute; left: 0; color: #3E3A39; font-weight: bold; }
+.overview-list li::before { content: "\\00B7"; position: absolute; left: 0; color: #3E3A39; font-weight: bold; }
 
-/* 红条标题 */
 .title-bar-red {
     border-left: 4px solid #da1e33;
     padding-left: 10px;
@@ -1631,7 +1555,6 @@ h2.section-title-modern .num-box {
     color: #333;
     margin: 25px 0 15px 0;
 }
-/* 红色副标题 */
 .subtitle-red,
 h4.subtitle-red {
     color: #da1e33;
@@ -1642,12 +1565,9 @@ h4.subtitle-red {
     font-weight: bold;
     text-indent: 0;
 }
-/* 黑色副标题 */
 .subtitle-black { color: #000; font-size: 15px; font-weight: bold; margin: 15px 0 10px 0; text-indent: 0; }
-/* 缩进内容块 */
 .sub-content-block { padding-left: 2em; }
 
-/* 圆角信息框 */
 .rounded-info-box {
     border: 1px solid #ccc;
     border-radius: 12px;
@@ -1656,7 +1576,6 @@ h4.subtitle-red {
     background: #fff;
 }
 
-/* 浅灰公式框 */
 .gray-formula-box {
     background: #f4f5f7;
     padding: 15px 20px;
@@ -1667,7 +1586,6 @@ h4.subtitle-red {
     line-height: 2;
 }
 
-/* ========== 流程图样式 ========== */
 .workflow-diagram {
     display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
     gap: 10px; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px;
@@ -1678,21 +1596,17 @@ h4.subtitle-red {
 .workflow-step.final { background: #539A34; }
 .workflow-arrow { font-size: 24px; color: #999; }
 
-/* ========== 分析步骤 ========== */
 .analysis-steps { margin: 20px 0; }
 .analysis-step { display: flex; align-items: flex-start; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; }
 .step-number { width: 40px; height: 40px; background: #da1e33; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; flex-shrink: 0; margin-right: 15px; }
 .step-content h4 { margin: 0 0 8px 0; color: #333; }
 .step-content p { margin: 0; color: #666; }
 
-/* ========== 公式框 ========== */
 .formula-box { background: #f0f0f0; padding: 15px 25px; border-radius: 6px; margin: 15px 0; text-align: center; }
 .formula-box p { margin: 8px 0; font-size: 16px; }
 
-/* ========== 表格样式 ========== */
 .table-container { margin: 15px 0; }
 .table-responsive { overflow-x: auto; margin: 15px 0; }
-/* 单元格间留白隙（与参考脚本块状表头/斑马行一致） */
 .data-table {
     width: 100%;
     border-collapse: separate;
@@ -1721,10 +1635,8 @@ h4.subtitle-red {
 .data-table tbody tr:hover td { background: #d4d9df; transition: background 0.3s ease; }
 .data-table-static th { cursor: default; }
 .data-table-static th:hover { background: #da1e33; }
-/* 排序指示器实例样式继承上方 th .sort-indicator 规则 */
 
-/* ========== gy表格样式 ========== */
-.gy { font-family: 'Source Sans 3', 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', sans-serif; width: 100%; border-collapse: collapse; margin: 15px auto; }
+.gy { font-family: 'Source Sans 3', 'Inter', 'Segoe UI', sans-serif; width: 100%; border-collapse: collapse; margin: 15px auto; }
 .gy.fixed-first-col { table-layout: fixed; width: 100%; }
 .gy.fixed-first-col th:first-child, .gy.fixed-first-col td:first-child { width: 40ch; min-width: 40ch; max-width: 40ch; overflow: hidden; text-overflow: ellipsis; }
 .gy th { position: relative; font-size: 1em; border: 2px solid #ffffff; padding: 12px 15px; text-align: center; word-break: keep-all; white-space: nowrap; background-color: #da1e33; color: #ffffff; font-weight: 500; }
@@ -1733,13 +1645,11 @@ h4.subtitle-red {
 .gy tr:nth-child(even) { background: #e2e6ea; }
 .gy tr:hover td { background: #d4d9df; transition: background 0.3s ease; }
 
-/* ========== 字段说明 ========== */
 .field-description { background: #f8f9fa; padding: 15px 20px; border-radius: 6px; margin-top: 15px; font-size: 13px; }
 .field-description ul { margin: 10px 0 0 20px; }
 .field-description li { margin-bottom: 5px; }
 .plain-field-desc { font-size: 13px; color: #555; line-height: 1.8; margin-top: 15px; }
 
-/* ========== 图片样式 ========== */
 .image-selector-container { margin: 20px 0; }
 .modern-img-group { border: 2px solid #858d98; border-radius: 16px; margin-bottom: 30px; overflow: hidden; background: #fff; }
 .modern-img-header { background: #858d98; color: #fff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 16px; }
@@ -1768,7 +1678,6 @@ h4.subtitle-red {
 .image-container.fullscreen-div { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #ffffff; display: flex; align-items: center; justify-content: center; cursor: zoom-out; }
 .image-container.fullscreen-div img { width: auto; height: auto; max-width: 90vw; max-height: 90vh; cursor: zoom-out; }
 
-/* ========== 现代Tab选项卡样式 ========== */
 .modern-tab-header {
     background: #858d98;
     border-radius: 16px 16px 0 0;
@@ -1796,7 +1705,6 @@ h4.subtitle-red {
 }
 .modern-tab-content.active { display: block; }
 
-/* ========== 筛选弹窗样式 ========== */
 .filter-modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: fadeIn 0.3s; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .filter-modal-content { background-color: #fff; margin: 5% auto; padding: 0; border-radius: 8px; width: 90%; max-width: 700px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
@@ -1822,7 +1730,6 @@ h4.subtitle-red {
 .filter-modal-buttons .btn-primary { background: linear-gradient(135deg, #da1e33 0%, #b01828 100%); border: none; }
 .filter-modal-buttons .btn-primary:hover { background: linear-gradient(135deg, #b01828 0%, #8a1220 100%); }
 
-/* ========== 表格工具栏 ========== */
 .modern-table-toolbar { display: flex; justify-content: flex-end; align-items: center; gap: 15px; margin-bottom: 15px; margin-top: -40px; }
 .modern-search { position: relative; display: inline-flex; align-items: center; }
 .modern-search svg { position: absolute; left: 14px; width: 16px; height: 16px; fill: #333; }
@@ -1833,7 +1740,6 @@ h4.subtitle-red {
 .modern-filter-btn:hover { background: #e6e9ec; color: #333; }
 .filter-count-badge { background: #da1e33; color: white; border-radius: 10px; padding: 1px 6px; font-size: 12px; margin-left: 6px; display: none; }
 
-/* ========== 分页样式（精简风格：Prev/Next + 页码方块）========== */
 .table-pagination {
     display: flex;
     justify-content: space-between;
@@ -1845,21 +1751,17 @@ h4.subtitle-red {
 }
 .pagination-info { color: #888; font-size: 13px; }
 .pagination-controls { display: flex; align-items: center; gap: 6px; }
-/* Prev / Next 文本 */
 .page-nav {
     font-size: 13px; color: #555; cursor: pointer; user-select: none; padding: 2px 4px;
 }
 .page-nav:hover { color: #222; }
 .page-nav.disabled { color: #bbb; cursor: default; pointer-events: none; }
-/* < > 箭头 */
 .page-arrow {
     font-size: 14px; color: #555; cursor: pointer; user-select: none; padding: 2px 4px; font-family: monospace;
 }
 .page-arrow:hover { color: #222; }
 .page-arrow.disabled { color: #bbb; cursor: default; pointer-events: none; }
-/* 页码数字容器 */
 .page-nums { display: flex; align-items: center; gap: 4px; }
-/* 单个页码方块 */
 .page-num {
     display: inline-flex; justify-content: center; align-items: center;
     min-width: 28px; height: 28px; font-size: 13px; color: #555;
@@ -1869,7 +1771,6 @@ h4.subtitle-red {
 .page-num.active { background: #e3edf5; color: #da1e33; font-weight: 600; cursor: default; }
 .page-info { color: #333; font-size: 13px; margin: 0 10px; }
 
-/* ========== 下载链接 ========== */
 .name_table { margin: 10px 0 2px 0; text-align: left; }
 .table-caption-link {
     display: inline-flex; align-items: center; color: #333333;
@@ -1883,7 +1784,6 @@ h4.subtitle-red {
 .table-caption-link .download-icon { margin-right: 8px; display: inline-flex; align-items: center; justify-content: center; }
 .table-caption-link .download-icon svg { fill: #da1e33; width: 20px; height: 20px; }
 
-/* ========== 返回顶部 ========== */
 #goTopBtn {
     position: fixed; text-align: center; line-height: 30px;
     width: 40px; height: 40px; bottom: 35px; right: 20px;
@@ -1894,13 +1794,11 @@ h4.subtitle-red {
 #goTopBtn:hover svg path { fill: #ffffff; }
 @media (max-width: 768px) { #goTopBtn { right: 15px; bottom: 15px; } }
 
-/* ========== 列排序指示器 ========== */
 th .sort-indicator { position: absolute; margin-left: 3px; opacity: 0.3; }
-th .sort-indicator::before { content: "↕"; }
-th.sorted-asc .sort-indicator::before { content: "↑"; opacity: 1; color: #da1e33; }
-th.sorted-desc .sort-indicator::before { content: "↓"; opacity: 1; color: #da1e33; }
+th .sort-indicator::before { content: "\\2195"; }
+th.sorted-asc .sort-indicator::before { content: "\\2191"; opacity: 1; color: #da1e33; }
+th.sorted-desc .sort-indicator::before { content: "\\2193"; opacity: 1; color: #da1e33; }
 
-/* ========== 打印样式 ========== */
 @media print {
     .toc-sidebar, #goTopBtn { display: none !important; }
     .main-content { margin: 0 !important; padding: 20px !important; }
@@ -1909,25 +1807,25 @@ th.sorted-desc .sort-indicator::before { content: "↓"; opacity: 1; color: #da1
 '''
 
     def _get_base_css(self):
-        """获取base.css内容"""
+        """Get base.css content"""
         return '''a, img { border-style: none; outline: none !important }
-body { font-size: 14px; padding: 12px; font-family: 'Source Sans 3', 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', sans-serif; }
+body { font-size: 14px; padding: 12px; font-family: 'Source Sans 3', 'Inter', 'Segoe UI', sans-serif; }
 h1 { font-size: 30px; text-align: center; }
 h2 { font-size: 24px; }
 h3 { font-size: 18px; text-indent: 0.5em; }
 h4 { font-size: 16px; text-indent: 1em; }
-p.head { text-align: right; color: grey; font-family: 'Noto Sans SC', 'Source Han Sans SC', 'Microsoft YaHei', 'PingFang SC', sans-serif; }
+p.head { text-align: right; color: grey; font-family: 'Source Sans 3', 'Segoe UI', sans-serif; }
 p.paragraph { text-indent: 2em; line-height: 1.5; }
 p.center { text-align: center; }
 img.normal { height: auto; width: 100%; margin: auto; }
-table { font-family: 'Noto Sans SC', 'Source Han Sans SC', 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size: 14px; width: 100%; border-collapse: collapse; text-align: center; padding: 3px 10px 2px 10px; }
+table { font-family: 'Source Sans 3', 'Segoe UI', sans-serif; font-size: 14px; width: 100%; border-collapse: collapse; text-align: center; padding: 3px 10px 2px 10px; }
 #goTopBtn { position: fixed; text-align: center; line-height: 30px; width: 30px; height: 33px; font-size: 12px; cursor: pointer; right: 0px; }
 .bs-docs-qa { position: relative; margin: 15px 0; padding: 19px 19px 14px; background-color: #fff; border: 1px solid #ddd; border-radius: 4px; }
 .alert-qa { background-color: #eeeeee; border-color: #dddddd; }
 '''
 
     def _get_gallery_css(self):
-        """获取gallery.css内容"""
+        """Get gallery.css content"""
         return '''.button_prev { display: block; position: absolute; opacity: .8; cursor: pointer; width: 50px; height: 50px; top: 200px; left: 20px; z-index: 99; }
 .button_prev:hover { opacity: 1; }
 .button_next { display: block; position: absolute; opacity: .8; cursor: pointer; width: 50px; height: 50px; top: 200px; right: 20px; z-index: 99; }
@@ -1941,8 +1839,8 @@ table { font-family: 'Noto Sans SC', 'Source Han Sans SC', 'Microsoft YaHei', 'P
 '''
 
     def _get_common_js(self):
-        """获取common.js内容"""
-        return '''// 切换图片分组
+        """Get common.js content"""
+        return '''// Switch image group
 function toggleImageGroup(groupId) {
     var content = document.getElementById('group_' + groupId);
     var toggle = document.getElementById('toggle_' + groupId);
@@ -1955,7 +1853,7 @@ function toggleImageGroup(groupId) {
     }
 }
 
-// 切换图片
+// Switch image
 function switchImage(element, category, index) {
     var tabList = element.parentElement.querySelectorAll('.image-tab-item');
     tabList.forEach(function(item) { item.classList.remove('active'); });
@@ -1970,7 +1868,7 @@ function switchImage(element, category, index) {
     if (event) { event.preventDefault(); event.stopPropagation(); }
 }
 
-// 左右布局切换图片
+// Side-by-side image switch
 function switchImageSideBySide(element, category, index) {
     var listItems = element.parentElement.querySelectorAll('.modern-img-btn');
     listItems.forEach(function(item) { item.classList.remove('active'); });
@@ -1983,7 +1881,7 @@ function switchImageSideBySide(element, category, index) {
     if (event) { event.preventDefault(); event.stopPropagation(); }
 }
 
-// 全屏图片
+// Toggle fullscreen
 function toggleFullscreen(container) {
     if (container.classList.contains('fullscreen-div')) {
         container.classList.remove('fullscreen-div');
@@ -1998,7 +1896,7 @@ $(document).on('click', '.fullscreen-div', function(e) {
     }
 });
 
-// ========== 表格搜索和排序 ==========
+// ========== Table search and sort ==========
 function searchTableByColumn(tableId) {
     var input = document.getElementById(tableId + '_search');
     var filter = input.value.toUpperCase();
@@ -2031,13 +1929,13 @@ function sortTableByColumn(tableId, colIndex) {
     var filteredData = window.tableFilteredData[tableId];
     var allData = filteredData || data;
     if (!allData || allData.length === 0) return;
-    
+
     if (typeof window.tableSortCol[tableId] === 'undefined') { window.tableSortCol[tableId] = -1; }
     if (typeof window.tableSortDir[tableId] === 'undefined') { window.tableSortDir[tableId] = 'asc'; }
-    
+
     var currentSortCol = window.tableSortCol[tableId];
     var currentSortDir = window.tableSortDir[tableId];
-    
+
     if (currentSortCol === colIndex) {
         window.tableSortDir[tableId] = currentSortDir === 'asc' ? 'desc' : 'asc';
     } else {
@@ -2046,7 +1944,7 @@ function sortTableByColumn(tableId, colIndex) {
     }
     var sortDir = window.tableSortDir[tableId];
     updateSortIndicators(tableId, colIndex, sortDir);
-    
+
     var rows = [];
     for (var i = 0; i < allData.length; i++) {
         var tempDiv = document.createElement('div');
@@ -2060,7 +1958,7 @@ function sortTableByColumn(tableId, colIndex) {
         }
     }
     if (rows.length === 0) return;
-    
+
     rows.sort(function(a, b) {
         var aVal = a.colValue;
         var bVal = b.colValue;
@@ -2072,7 +1970,7 @@ function sortTableByColumn(tableId, colIndex) {
         aVal = aVal.toLowerCase(); bVal = bVal.toLowerCase();
         return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
     });
-    
+
     var sortedData = rows.map(function(row) { return row.html; });
     if (filteredData) { window.tableFilteredData[tableId] = sortedData; }
     else { window.tableData[tableId] = sortedData; }
@@ -2111,8 +2009,8 @@ function updatePaginationDisplay(tableId) {
     if (!pagination) return;
     var infoSpan = pagination.querySelector('.pagination-info');
     if (infoSpan) {
-        if (filteredData) { infoSpan.textContent = '筛选 ' + totalRows + ' 行'; }
-        else { infoSpan.textContent = '共 ' + totalRows + ' 行'; }
+        if (filteredData) { infoSpan.textContent = 'Filtered ' + totalRows + ' rows'; }
+        else { infoSpan.textContent = 'Total ' + totalRows + ' rows'; }
     }
     if (typeof renderPageNumbers === 'function') { renderPageNumbers(tableId, totalPages, current); }
     var prevNav = pagination.querySelector('.prev-nav');
@@ -2175,8 +2073,8 @@ function goToPage(tableId, pageNum) {
             var totalRows = filteredData ? filteredData.length : (data ? data.length : 0);
             var s = (pageNum - 1) * maxRows + 1;
             var e = Math.min(pageNum * maxRows, totalRows);
-            if (filteredData) { infoSpan.textContent = '筛选 ' + totalRows + ' 行，显示 ' + s + '-' + e + ' 行'; }
-            else { infoSpan.textContent = '共 ' + totalRows + ' 行，显示 ' + s + '-' + e + ' 行'; }
+            if (filteredData) { infoSpan.textContent = 'Filtered ' + totalRows + ' rows, showing ' + s + '-' + e; }
+            else { infoSpan.textContent = 'Total ' + totalRows + ' rows, showing ' + s + '-' + e; }
         }
     }
     if (event) { event.preventDefault(); event.stopPropagation(); }
@@ -2198,7 +2096,7 @@ function nextPage(tableId) {
     if (current < totalPages) goToPage(tableId, current + 1);
 }
 
-// ========== 多条件筛选 ==========
+// ========== Multi-condition filter ==========
 function openFilterModal(tableId) {
     var modal = document.getElementById(tableId + '_filter_modal');
     if (modal) { modal.style.display = 'block'; }
@@ -2212,13 +2110,13 @@ function closeFilterModal(tableId) {
 function addFilterCondition(tableId) {
     var conditionsContainer = document.getElementById(tableId + '_filter_conditions');
     var templateSelect = document.getElementById(tableId + '_field_template');
-    if (conditionsContainer.children.length >= 6) { alert('最多只能添加6个筛选条件'); return; }
+    if (conditionsContainer.children.length >= 6) { alert('Maximum 6 filter conditions allowed.'); return; }
     var conditionId = Date.now();
     var fieldOptions = templateSelect ? templateSelect.innerHTML : '';
     var conditionHtml = '<div class="filter-condition" id="' + tableId + '_condition_' + conditionId + '">' +
         '<select class="field-select" onchange="updateOperatorOptions(\\'' + tableId + '\\', \\'' + conditionId + '\\')">' + fieldOptions + '</select>' +
         '<select class="operator-select"><option value=">">></option><option value=">=">>=</option><option value="<"><</option><option value="<="><=</option><option value="=">=</option><option value="|x|>">|x|></option></select>' +
-        '<input type="text" class="value-input" placeholder="数值">' +
+        '<input type="text" class="value-input" placeholder="Value">' +
         '<button class="remove-condition" onclick="removeFilterCondition(\\'' + tableId + '\\', \\'' + conditionId + '\\')">&times;</button></div>';
     conditionsContainer.insertAdjacentHTML('beforeend', conditionHtml);
 }
@@ -2335,7 +2233,7 @@ window.onclick = function(event) {
     modals.forEach(function(modal) { if (event.target === modal) { modal.style.display = 'none'; } });
 }
 
-// 现代版 Tab 切换
+// Modern tab switch
 function switchModernTab(element, targetId, groupPrefix) {
     var tabs = element.parentElement.querySelectorAll('.modern-tab-item');
     tabs.forEach(function(tab) { tab.classList.remove('active'); });
@@ -2349,7 +2247,7 @@ function switchModernTab(element, targetId, groupPrefix) {
 '''
 
     def _get_scrolltop_js(self):
-        """获取scrolltop.js内容"""
+        """Get scrolltop.js content"""
         return '''function goTop() { $('html, body').animate({ scrollTop: 0 }, 300); }
 $(window).scroll(function() {
     if ($(this).scrollTop() > 300) { $('#goTopBtn').fadeIn(); } else { $('#goTopBtn').fadeOut(); }
@@ -2365,18 +2263,20 @@ $(document).on('click', 'a[href^="#"]', function(event) {
 
 
 def main():
-    """主函数"""
-    parser = argparse.ArgumentParser(description='CRISPR文库测序数据报告生成器', formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('data_dir', nargs='?', default='.', help='数据文件夹路径')
-    parser.add_argument('output_dir', nargs='?', default='./report_output', help='输出目录')
-    parser.add_argument('--name', default=None, help='项目名称')
-    parser.add_argument('--project-id', default=None, help='项目编号')
-    parser.add_argument('--protocol', default='', help='协议编号')
-    parser.add_argument('--sample', default='', help='样本名称（覆盖数据质控统计中Sample列）')
+    """Main function"""
+    parser = argparse.ArgumentParser(
+        description='CRISPR Library Sequencing Data Report Generator (English)',
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('data_dir', nargs='?', default='.', help='Data folder path')
+    parser.add_argument('output_dir', nargs='?', default='./report_output_en', help='Output directory')
+    parser.add_argument('--name', default=None, help='Project name')
+    parser.add_argument('--project-id', default=None, help='Project ID')
+    parser.add_argument('--protocol', default='', help='Protocol number')
+    parser.add_argument('--sample', default='', help='Sample name (overrides Sample column in QC stats)')
 
     args = parser.parse_args()
 
-    generator = CRISPRReportGenerator(
+    generator = CRISPRReportGeneratorEN(
         data_dir=args.data_dir,
         output_dir=args.output_dir,
         project_name=args.name,
@@ -2386,7 +2286,7 @@ def main():
     )
 
     print("=" * 60)
-    print("CRISPR文库测序数据报告生成器")
+    print("CRISPR Library Sequencing Data Report Generator (English)")
     print("=" * 60)
 
     generator.scan_files()
@@ -2394,8 +2294,8 @@ def main():
     output_file = generator.generate_report()
 
     print("\n" + "=" * 60)
-    print("报告生成完成!")
-    print(f"输出文件: {output_file}")
+    print("Report generation complete!")
+    print(f"Output file: {output_file}")
     print("=" * 60)
 
 

@@ -824,12 +824,7 @@ class CRISPRReportGenerator:
                 <span class="cover-protocol">{protocol_text}</span>
             </div>
             </div>
-        </div>
-'''
-        
-        # 报告头部
-        html += f'''
-<br>
+
             <header class="report-header">
                 <h1 class="report-title">{self.report_title}</h1>
                 <div class="report-header-box">
@@ -853,8 +848,7 @@ class CRISPRReportGenerator:
                     </div>
                 </div>
             </header>
-            <br><br>
-
+        </div>
 '''
         # 1. 项目摘要
         html += self._generate_section('overview', '1 项目摘要', self._generate_overview_section())
@@ -1287,7 +1281,6 @@ class CRISPRReportGenerator:
     width: 100%;
     background-color: #fff;
     margin-bottom: 40px;
-    page-break-after: always;
     box-sizing: border-box;
 }
 /* 封面专用内容宽：与正文容器一致 1200px，适配宽屏横版 */
